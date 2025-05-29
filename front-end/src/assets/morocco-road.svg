@@ -1,0 +1,39 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ciel -->
+  <rect width="1920" height="1080" fill="url(#sky)" />
+  
+  <!-- Montagnes -->
+  <path d="M0 400L300 200L600 450L900 150L1200 350L1500 200L1920 400V1080H0V400Z" fill="url(#mountains)" />
+  
+  <!-- Route -->
+  <path d="M0 600C300 550 600 650 900 600C1200 550 1500 650 1920 600L1920 1080H0L0 600Z" fill="url(#road)" />
+  
+  <!-- Palmiers stylisés -->
+  <g transform="translate(200, 500)">
+    <path d="M0 0C10-30 20-40 30-30C40-40 50-30 60 0" stroke="#2D3748" stroke-width="4"/>
+    <rect x="27" y="0" width="6" height="40" fill="#2D3748"/>
+  </g>
+  
+  <g transform="translate(1600, 500)">
+    <path d="M0 0C10-30 20-40 30-30C40-40 50-30 60 0" stroke="#2D3748" stroke-width="4"/>
+    <rect x="27" y="0" width="6" height="40" fill="#2D3748"/>
+  </g>
+  
+  <!-- Dégradés -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1080">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    
+    <linearGradient id="mountains" x1="0" y1="200" x2="0" y2="1080">
+      <stop offset="0%" stop-color="#4B5563"/>
+      <stop offset="100%" stop-color="#1F2937"/>
+    </linearGradient>
+    
+    <linearGradient id="road" x1="0" y1="600" x2="0" y2="1080">
+      <stop offset="0%" stop-color="#E5E7EB"/>
+      <stop offset="100%" stop-color="#9CA3AF"/>
+    </linearGradient>
+  </defs>
+</svg>
