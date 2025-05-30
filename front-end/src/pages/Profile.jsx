@@ -17,7 +17,7 @@ const Profile = () => {
   const [uploadingIdentity, setUploadingIdentity] = useState(false);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('trips');
 
   useEffect(() => {
     loadProfile();
@@ -701,17 +701,7 @@ const Profile = () => {
         {/* Onglets pour la gestion des trajets/réservations */}
         <div className="border-t border-gray-200 mt-8">
           <div className="flex space-x-8 px-6 py-4">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'profile'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <FaUser className="inline mr-2" />
-              Profil
-            </button>
+
 
             {user.role === 'conducteur' && (
               <button
@@ -744,11 +734,7 @@ const Profile = () => {
 
           {/* Contenu des onglets */}
           <div className="px-6 py-6">
-            {activeTab === 'profile' && (
-              <div className="text-center text-gray-600">
-                <p>Les informations de profil sont affichées ci-dessus.</p>
-              </div>
-            )}
+
 
             {activeTab === 'trips' && user.role === 'conducteur' && (
               <DriverTripsManagement />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   FaCar, FaSearch, FaFilter, FaCheck, FaTimes, FaEye, FaSpinner,
   FaExclamationTriangle, FaDownload, FaSort, FaUser, FaClock,
   FaCheckCircle, FaTimesCircle
@@ -61,9 +61,9 @@ const VehiclesManagement = () => {
                          vehicle.modele?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          vehicle.user?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          vehicle.user?.nom?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus === 'all' || vehicle.statut_verification === filterStatus;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -73,10 +73,10 @@ const VehiclesManagement = () => {
       'verifie': { color: 'bg-green-100 text-green-800', icon: FaCheckCircle, label: 'Vérifié' },
       'rejete': { color: 'bg-red-100 text-red-800', icon: FaTimesCircle, label: 'Rejeté' }
     };
-    
+
     const config = statusConfig[status] || statusConfig['en_attente'];
     const Icon = config.icon;
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
         <Icon className="mr-1" />
@@ -95,19 +95,21 @@ const VehiclesManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des véhicules</h1>
-          <p className="text-gray-600 mt-1">{vehicles.length} véhicules au total</p>
+          <h1 className="text-xl font-bold text-gray-900">Gestion des véhicules</h1>
+          <p className="text-gray-600 text-sm">{vehicles.length} véhicules au total</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-            <FaDownload />
-            <span>Exporter</span>
-          </button>
-        </div>
+        <button
+          onClick={loadVehicles}
+          disabled={loading}
+          className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+        >
+          <FaSpinner className={loading ? 'animate-spin' : ''} />
+          <span>Actualiser</span>
+        </button>
       </div>
 
       {/* Messages */}
@@ -137,7 +139,7 @@ const VehiclesManagement = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
-          
+
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -148,7 +150,7 @@ const VehiclesManagement = () => {
             <option value="verifie">Vérifiés</option>
             <option value="rejete">Rejetés</option>
           </select>
-          
+
           <button
             onClick={loadVehicles}
             className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -160,7 +162,7 @@ const VehiclesManagement = () => {
       </div>
 
       {/* Table des véhicules */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -204,9 +206,12 @@ const VehiclesManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
-                        src={vehicle.user?.photo_url || '/default-avatar.png'}
+                        src={vehicle.user?.photo_url ? `http://localhost:8000/storage/${vehicle.user.photo_url}` : '/images/default-avatar.svg'}
                         alt=""
-                        className="w-8 h-8 rounded-full border border-gray-200"
+                        className="w-8 h-8 rounded-full border border-gray-200 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/images/default-avatar.svg';
+                        }}
                       />
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">
@@ -242,7 +247,7 @@ const VehiclesManagement = () => {
                       >
                         <FaEye />
                       </button>
-                      
+
                       {vehicle.statut_verification === 'en_attente' && (
                         <>
                           <button
@@ -263,7 +268,7 @@ const VehiclesManagement = () => {
                           </button>
                         </>
                       )}
-                      
+
                       {vehicle.statut_verification === 'rejete' && (
                         <button
                           onClick={() => handleVerifyVehicle(vehicle.id, 'verifie')}
@@ -274,7 +279,7 @@ const VehiclesManagement = () => {
                           <FaCheck />
                         </button>
                       )}
-                      
+
                       {vehicle.statut_verification === 'verifie' && (
                         <button
                           onClick={() => handleVerifyVehicle(vehicle.id, 'rejete')}

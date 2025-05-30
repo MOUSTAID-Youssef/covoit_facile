@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaSearch, FaUsers, FaCar, FaRoute, FaLeaf, FaArrowRight, FaStar, FaQuoteLeft } from 'react-icons/fa';
+import { FaSearch, FaUsers, FaCar, FaRoute, FaLeaf, FaArrowRight, FaStar, FaQuoteLeft, FaSpinner } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
+import apiClient from '../config/axios';
 
 function Home() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useState({
     departure: '',
     destination: '',
     date: ''
   });
+  const [realStats, setRealStats] = useState(null);
+  const [realTestimonials, setRealTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -21,7 +27,44 @@ function Home() {
     navigate('/search', { state: searchParams });
   };
 
-  const stats = [
+  // Charger les données réelles depuis la base de données
+  const loadRealData = async () => {
+    try {
+      console.log('📊 Chargement des données réelles...');
+
+      // Charger les statistiques réelles
+      const statsResponse = await apiClient.get('/public/stats');
+      if (statsResponse.data.success) {
+        setRealStats(statsResponse.data.stats);
+        console.log('✅ Statistiques chargées:', statsResponse.data.stats);
+      }
+
+      // Charger les témoignages réels
+      const testimonialsResponse = await apiClient.get('/public/testimonials');
+      if (testimonialsResponse.data.success) {
+        setRealTestimonials(testimonialsResponse.data.testimonials);
+        console.log('✅ Témoignages chargés:', testimonialsResponse.data.testimonials);
+      }
+
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des données:', error);
+      // En cas d'erreur, on garde les données statiques
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRealData();
+  }, []);
+
+  // Utiliser les données réelles ou les données statiques par défaut
+  const displayStats = realStats ? [
+    { icon: FaUsers, number: realStats.total_users?.toLocaleString() || "0", label: "Utilisateurs actifs", color: "text-blue-600" },
+    { icon: FaRoute, number: realStats.total_trajets?.toLocaleString() || "0", label: "Trajets partagés", color: "text-green-600" },
+    { icon: FaCar, number: realStats.total_vehicules?.toLocaleString() || "0", label: "Véhicules enregistrés", color: "text-purple-600" },
+    { icon: FaLeaf, number: realStats.co2_economise?.toLocaleString() || "0", label: "Kg CO2 économisés", color: "text-emerald-600" }
+  ] : [
     { icon: FaUsers, number: "2,847", label: "Utilisateurs actifs", color: "text-blue-600" },
     { icon: FaRoute, number: "1,234", label: "Trajets partagés", color: "text-green-600" },
     { icon: FaCar, number: "856", label: "Véhicules enregistrés", color: "text-purple-600" },
@@ -55,7 +98,8 @@ function Home() {
     }
   ];
 
-  const testimonials = [
+  // Utiliser les témoignages réels ou les témoignages statiques par défaut
+  const displayTestimonials = realTestimonials.length > 0 ? realTestimonials : [
     {
       name: "Ahmed Benali",
       role: "Conducteur",
@@ -157,22 +201,35 @@ function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat, index) => {
-              const IconComponent = stat.icon;
-              return (
-                <div key={index} className="text-center p-6 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4 ${stat.color}`}>
-                    <IconComponent className="w-8 h-8" />
+            {loading ? (
+              // Indicateur de chargement
+              Array.from({ length: 4 }, (_, index) => (
+                <div key={index} className="text-center p-6 rounded-lg bg-white shadow-sm">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <FaSpinner className="w-8 h-8 text-gray-400 animate-spin" />
                   </div>
-                  <div className="text-3xl font-bold text-gray-900 mb-2">
-                    {stat.number}
-                  </div>
-                  <div className="text-gray-600 font-medium">
-                    {stat.label}
-                  </div>
+                  <div className="h-8 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
                 </div>
-              );
-            })}
+              ))
+            ) : (
+              displayStats.map((stat, index) => {
+                const IconComponent = stat.icon;
+                return (
+                  <div key={index} className="text-center p-6 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4 ${stat.color}`}>
+                      <IconComponent className="w-8 h-8" />
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">
+                      {stat.number}
+                    </div>
+                    <div className="text-gray-600 font-medium">
+                      {stat.label}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </section>
@@ -228,7 +285,7 @@ function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
+            {displayTestimonials.map((testimonial, index) => (
               <div key={index} className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex justify-center mb-4">
                   <FaQuoteLeft className="w-8 h-8 text-indigo-600 opacity-50" />
@@ -262,32 +319,63 @@ function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-indigo-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Prêt à commencer votre voyage ?
-          </h2>
-          <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-            Rejoignez des milliers d'utilisateurs qui font confiance à CovoitFacile pour leurs déplacements
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-indigo-600 bg-white hover:bg-gray-50 transition-colors"
-            >
-              Créer un compte
-            </Link>
-            <Link
-              to="/search"
-              className="inline-flex items-center px-8 py-3 border-2 border-white text-base font-medium rounded-lg text-white hover:bg-white hover:text-indigo-600 transition-colors"
-            >
-              Rechercher un trajet
-              <FaArrowRight className="ml-2 w-4 h-4" />
-            </Link>
+      {/* CTA Section - Masqué pour les utilisateurs authentifiés */}
+      {!user && (
+        <section className="py-16 bg-indigo-600">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Prêt à commencer votre voyage ?
+            </h2>
+            <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
+              Rejoignez des milliers d'utilisateurs qui font confiance à CovoitFacile pour leurs déplacements
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/register"
+                className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-indigo-600 bg-white hover:bg-gray-50 transition-colors"
+              >
+                Créer un compte
+              </Link>
+              <Link
+                to="/search"
+                className="inline-flex items-center px-8 py-3 border-2 border-white text-base font-medium rounded-lg text-white hover:bg-white hover:text-indigo-600 transition-colors"
+              >
+                Rechercher un trajet
+                <FaArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* Section alternative pour les utilisateurs connectés */}
+      {user && (
+        <section className="py-16 bg-gradient-to-r from-green-600 to-blue-600">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Bon retour, {user.prenom} ! 👋
+            </h2>
+            <p className="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
+              Prêt pour votre prochain voyage ? Découvrez les trajets disponibles ou proposez le vôtre.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/search"
+                className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-green-600 bg-white hover:bg-gray-50 transition-colors"
+              >
+                Rechercher un trajet
+              </Link>
+              <Link
+                to="/create-trip"
+                className="inline-flex items-center px-8 py-3 border-2 border-white text-base font-medium rounded-lg text-white hover:bg-white hover:text-green-600 transition-colors"
+              >
+                Proposer un trajet
+                <FaArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

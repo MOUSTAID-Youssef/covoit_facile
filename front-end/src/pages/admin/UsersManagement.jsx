@@ -5,6 +5,7 @@ import {
   FaDownload, FaPlus, FaSort
 } from 'react-icons/fa';
 import adminService from '../../services/adminService';
+import Avatar from '../../components/Avatar';
 
 const UsersManagement = () => {
   const [users, setUsers] = useState([]);
@@ -153,23 +154,21 @@ const UsersManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h1>
-          <p className="text-gray-600 mt-1">{users.length} utilisateurs au total</p>
+          <h1 className="text-xl font-bold text-gray-900">Gestion des utilisateurs</h1>
+          <p className="text-gray-600 text-sm">{users.length} utilisateurs au total</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-            <FaDownload />
-            <span>Exporter</span>
-          </button>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-            <FaPlus />
-            <span>Ajouter</span>
-          </button>
-        </div>
+        <button
+          onClick={loadUsers}
+          disabled={loading}
+          className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+        >
+          <FaSpinner className={loading ? 'animate-spin' : ''} />
+          <span>Actualiser</span>
+        </button>
       </div>
 
       {/* Messages */}
@@ -233,7 +232,7 @@ const UsersManagement = () => {
       </div>
 
       {/* Table des utilisateurs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -260,10 +259,10 @@ const UsersManagement = () => {
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <img
-                        src={user.photo_url || '/default-avatar.png'}
-                        alt=""
-                        className="w-10 h-10 rounded-full border-2 border-gray-200"
+                      <Avatar
+                        src={user.photo_url}
+                        alt={`${user.prenom} ${user.nom}`}
+                        size="md"
                       />
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
@@ -294,7 +293,10 @@ const UsersManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => setSelectedUser(user)}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowModal(true);
+                        }}
                         className="text-indigo-600 hover:text-indigo-900 p-1"
                         title="Voir détails"
                       >
@@ -353,6 +355,157 @@ const UsersManagement = () => {
         <div className="text-center py-12">
           <FaUsers className="mx-auto text-4xl text-gray-400 mb-4" />
           <p className="text-gray-500">Aucun utilisateur trouvé</p>
+        </div>
+      )}
+
+      {/* Modal de détails utilisateur */}
+      {showModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Détails de l'utilisateur
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    setSelectedUser(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
+
+              {/* Informations utilisateur */}
+              <div className="space-y-6">
+                {/* Photo et infos de base */}
+                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <Avatar
+                    src={selectedUser.photo_url}
+                    alt={`${selectedUser.prenom} ${selectedUser.nom}`}
+                    size="xl"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      {selectedUser.prenom} {selectedUser.nom}
+                    </h3>
+                    <p className="text-gray-600">{selectedUser.email}</p>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                        selectedUser.role === 'conducteur' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {selectedUser.role}
+                      </span>
+                      {getStatusBadge(selectedUser)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Détails */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Informations personnelles</h4>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">ID:</span> {selectedUser.id}</p>
+                      <p><span className="font-medium">Téléphone:</span> {selectedUser.telephone || 'Non renseigné'}</p>
+                      <p><span className="font-medium">Genre:</span> {selectedUser.genre || 'Non renseigné'}</p>
+                      <p><span className="font-medium">Date de naissance:</span> {selectedUser.date_naissance || 'Non renseignée'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Activité</h4>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">Inscription:</span> {new Date(selectedUser.created_at).toLocaleDateString('fr-FR')}</p>
+                      <p><span className="font-medium">Dernière mise à jour:</span> {new Date(selectedUser.updated_at).toLocaleDateString('fr-FR')}</p>
+                      <p><span className="font-medium">Véhicules:</span> {selectedUser.vehicules_count || 0}</p>
+                      <p><span className="font-medium">Trajets:</span> {selectedUser.trajets_count || 0}</p>
+                      <p><span className="font-medium">Réservations:</span> {selectedUser.reservations_count || 0}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Document d'identité */}
+                {selectedUser.cin_path && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Document d'identité</h4>
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <img
+                        src={`http://localhost:8000/storage/${selectedUser.cin_path}`}
+                        alt="Document d'identité"
+                        className="max-w-full h-auto rounded-lg"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                      />
+                      <div className="hidden text-center py-8 text-gray-500">
+                        <p>Impossible de charger le document</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                  {!selectedUser.badge_verifie && (
+                    <button
+                      onClick={() => {
+                        handleVerifyUser(selectedUser.id);
+                        setShowModal(false);
+                      }}
+                      disabled={actionLoading}
+                      className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <FaCheck />
+                      <span>Vérifier</span>
+                    </button>
+                  )}
+
+                  {selectedUser.statut !== 'bloque' ? (
+                    <button
+                      onClick={() => {
+                        handleBlockUser(selectedUser.id);
+                        setShowModal(false);
+                      }}
+                      disabled={actionLoading}
+                      className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    >
+                      <FaBan />
+                      <span>Bloquer</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handleUnblockUser(selectedUser.id);
+                        setShowModal(false);
+                      }}
+                      disabled={actionLoading}
+                      className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <FaUserCheck />
+                      <span>Débloquer</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setShowModal(false);
+                      setSelectedUser(null);
+                    }}
+                    disabled={actionLoading}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

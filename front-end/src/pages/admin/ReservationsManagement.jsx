@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   FaClipboardList, FaSearch, FaFilter, FaEye, FaSpinner, FaMapMarkerAlt,
   FaCalendarAlt, FaClock, FaEuroSign, FaUsers, FaCheck, FaTimes,
   FaExclamationTriangle, FaDownload, FaSort, FaUser
@@ -42,16 +42,16 @@ const ReservationsManagement = () => {
                          reservation.voyageur?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          reservation.trajet?.ville_depart?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          reservation.trajet?.ville_arrivee?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus === 'all' || reservation.statut === filterStatus;
-    
+
     const today = new Date();
     const reservationDate = new Date(reservation.created_at);
     const matchesDate = filterDate === 'all' ||
                        (filterDate === 'today' && reservationDate.toDateString() === today.toDateString()) ||
                        (filterDate === 'week' && (today - reservationDate) / (1000 * 60 * 60 * 24) <= 7) ||
                        (filterDate === 'month' && (today - reservationDate) / (1000 * 60 * 60 * 24) <= 30);
-    
+
     return matchesSearch && matchesStatus && matchesDate;
   });
 
@@ -61,10 +61,10 @@ const ReservationsManagement = () => {
       'confirmee': { color: 'bg-green-100 text-green-800', icon: FaCheck, label: 'Confirmée' },
       'annulee': { color: 'bg-red-100 text-red-800', icon: FaTimes, label: 'Annulée' }
     };
-    
+
     const config = statusConfig[status] || statusConfig['en_attente'];
     const Icon = config.icon;
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
         <Icon className="mr-1" />
@@ -89,22 +89,26 @@ const ReservationsManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des réservations</h1>
-          <p className="text-gray-600 mt-1">{reservations.length} réservations au total</p>
+          <h1 className="text-xl font-bold text-gray-900">Gestion des réservations</h1>
+          <p className="text-gray-600 text-sm">{reservations.length} réservations au total</p>
         </div>
         <div className="flex items-center space-x-3">
-          <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+          <div className="bg-green-100 text-green-800 px-3 py-2 rounded-lg">
             <span className="text-sm font-medium">
               Revenus: {calculateTotalRevenue().toLocaleString()} MAD
             </span>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-            <FaDownload />
-            <span>Exporter</span>
+          <button
+            onClick={loadReservations}
+            disabled={loading}
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+          >
+            <FaSpinner className={loading ? 'animate-spin' : ''} />
+            <span>Actualiser</span>
           </button>
         </div>
       </div>
@@ -134,7 +138,7 @@ const ReservationsManagement = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center">
             <FaClock className="text-yellow-500 text-2xl mr-3" />
@@ -146,7 +150,7 @@ const ReservationsManagement = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center">
             <FaCheck className="text-green-500 text-2xl mr-3" />
@@ -158,7 +162,7 @@ const ReservationsManagement = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center">
             <FaTimes className="text-red-500 text-2xl mr-3" />
@@ -185,7 +189,7 @@ const ReservationsManagement = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
-          
+
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -196,7 +200,7 @@ const ReservationsManagement = () => {
             <option value="confirmee">Confirmées</option>
             <option value="annulee">Annulées</option>
           </select>
-          
+
           <select
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
@@ -207,7 +211,7 @@ const ReservationsManagement = () => {
             <option value="week">Cette semaine</option>
             <option value="month">Ce mois</option>
           </select>
-          
+
           <button
             onClick={loadReservations}
             className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -219,7 +223,7 @@ const ReservationsManagement = () => {
       </div>
 
       {/* Table des réservations */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -250,9 +254,12 @@ const ReservationsManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
-                        src={reservation.voyageur?.photo_url || '/default-avatar.png'}
+                        src={reservation.voyageur?.photo_url ? `http://localhost:8000/storage/${reservation.voyageur.photo_url}` : '/images/default-avatar.svg'}
                         alt=""
-                        className="w-8 h-8 rounded-full border border-gray-200"
+                        className="w-8 h-8 rounded-full border border-gray-200 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/images/default-avatar.svg';
+                        }}
                       />
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">

@@ -7,10 +7,19 @@ class AdminService {
       console.log('📊 Chargement des statistiques admin...');
       const response = await apiClient.get('/admin/stats');
       console.log('✅ Statistiques chargées:', response.data);
-      return {
-        success: true,
-        data: response.data.stats
-      };
+
+      // L'API retourne { success: true, stats: {...} }
+      if (response.data.success) {
+        return {
+          success: true,
+          stats: response.data.stats
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message || 'Erreur lors du chargement des statistiques'
+        };
+      }
     } catch (error) {
       console.error('❌ Erreur lors du chargement des statistiques:', error);
       return {

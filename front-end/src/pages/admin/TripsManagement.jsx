@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   FaRoute, FaSearch, FaFilter, FaEdit, FaTrash, FaEye, FaMapMarkerAlt,
   FaCalendarAlt, FaClock, FaEuroSign, FaUsers, FaSpinner, FaCheck, FaTimes,
   FaExclamationTriangle, FaDownload, FaSort, FaCar
@@ -40,7 +40,7 @@ const TripsManagement = () => {
 
   const handleDeleteTrip = async (tripId) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce trajet ?')) return;
-    
+
     setActionLoading(true);
     try {
       const result = await adminService.deleteTrip(tripId);
@@ -79,16 +79,16 @@ const TripsManagement = () => {
                          trip.ville_arrivee?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          trip.conducteur?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          trip.conducteur?.nom?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus === 'all' || trip.statut === filterStatus;
-    
+
     const today = new Date();
     const tripDate = new Date(trip.date_depart);
     const matchesDate = filterDate === 'all' ||
                        (filterDate === 'today' && tripDate.toDateString() === today.toDateString()) ||
                        (filterDate === 'upcoming' && tripDate > today) ||
                        (filterDate === 'past' && tripDate < today);
-    
+
     return matchesSearch && matchesStatus && matchesDate;
   });
 
@@ -99,10 +99,10 @@ const TripsManagement = () => {
       'annule': { color: 'bg-red-100 text-red-800', icon: FaTimes, label: 'Annulé' },
       'termine': { color: 'bg-gray-100 text-gray-800', icon: FaCheck, label: 'Terminé' }
     };
-    
+
     const config = statusConfig[status] || statusConfig['actif'];
     const Icon = config.icon;
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
         <Icon className="mr-1" />
@@ -121,19 +121,21 @@ const TripsManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des trajets</h1>
-          <p className="text-gray-600 mt-1">{trips.length} trajets au total</p>
+          <h1 className="text-xl font-bold text-gray-900">Gestion des trajets</h1>
+          <p className="text-gray-600 text-sm">{trips.length} trajets au total</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-            <FaDownload />
-            <span>Exporter</span>
-          </button>
-        </div>
+        <button
+          onClick={loadTrips}
+          disabled={loading}
+          className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+        >
+          <FaSpinner className={loading ? 'animate-spin' : ''} />
+          <span>Actualiser</span>
+        </button>
       </div>
 
       {/* Messages */}
@@ -163,7 +165,7 @@ const TripsManagement = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
-          
+
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -175,7 +177,7 @@ const TripsManagement = () => {
             <option value="annule">Annulés</option>
             <option value="termine">Terminés</option>
           </select>
-          
+
           <select
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
@@ -186,7 +188,7 @@ const TripsManagement = () => {
             <option value="upcoming">À venir</option>
             <option value="past">Passés</option>
           </select>
-          
+
           <button
             onClick={loadTrips}
             className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -198,7 +200,7 @@ const TripsManagement = () => {
       </div>
 
       {/* Table des trajets */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -242,9 +244,12 @@ const TripsManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
-                        src={trip.conducteur?.photo_url || '/default-avatar.png'}
+                        src={trip.conducteur?.photo_url ? `http://localhost:8000/storage/${trip.conducteur.photo_url}` : '/images/default-avatar.svg'}
                         alt=""
-                        className="w-8 h-8 rounded-full border border-gray-200"
+                        className="w-8 h-8 rounded-full border border-gray-200 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/images/default-avatar.svg';
+                        }}
                       />
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">
@@ -292,7 +297,7 @@ const TripsManagement = () => {
                       >
                         <FaEye />
                       </button>
-                      
+
                       {trip.statut === 'actif' && (
                         <button
                           onClick={() => handleUpdateTripStatus(trip.id, 'annule')}
@@ -303,7 +308,7 @@ const TripsManagement = () => {
                           <FaTimes />
                         </button>
                       )}
-                      
+
                       {trip.statut === 'annule' && (
                         <button
                           onClick={() => handleUpdateTripStatus(trip.id, 'actif')}
@@ -314,7 +319,7 @@ const TripsManagement = () => {
                           <FaCheck />
                         </button>
                       )}
-                      
+
                       <button
                         onClick={() => handleDeleteTrip(trip.id)}
                         disabled={actionLoading}

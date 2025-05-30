@@ -1,13 +1,28 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaCar, FaBars, FaTimes, FaUser, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
+import {
+  FaCar, FaBars, FaTimes, FaUser, FaSignOutAlt, FaChevronDown,
+  FaChartBar, FaUserCheck, FaUsers, FaRoute, FaClipboardList
+} from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Menu items admin
+  const adminMenuItems = [
+    { id: 'dashboard', label: 'Tableau de bord', icon: FaChartBar, url: '/admin' },
+    { id: 'stats', label: 'Statistiques', icon: FaChartBar, url: '/admin/dashboard' },
+    { id: 'verification', label: 'Vérification', icon: FaUserCheck, url: '/admin/verification' },
+    { id: 'users', label: 'Utilisateurs', icon: FaUsers, url: '/admin/users' },
+    { id: 'trips', label: 'Trajets', icon: FaRoute, url: '/admin/trips' },
+    { id: 'vehicles', label: 'Véhicules', icon: FaCar, url: '/admin/vehicles' },
+    { id: 'reservations', label: 'Réservations', icon: FaClipboardList, url: '/admin/reservations' },
+  ];
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -15,6 +30,12 @@ function Navbar() {
 
   const toggleUserMenu = () => {
     setUserMenuOpen(!userMenuOpen);
+    setAdminMenuOpen(false); // Fermer l'autre menu
+  };
+
+  const toggleAdminMenu = () => {
+    setAdminMenuOpen(!adminMenuOpen);
+    setUserMenuOpen(false); // Fermer l'autre menu
   };
 
   const handleLogout = async () => {
@@ -73,12 +94,34 @@ function Navbar() {
                   </Link>
                 )}
                 {user?.role === 'admin' && (
-                  <Link
-                    to="/admin/dashboard"
-                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                  >
-                    Dashboard
-                  </Link>
+                  <div className="relative">
+                    <button
+                      onClick={toggleAdminMenu}
+                      className="flex items-center space-x-2 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                      <span>Dashboard</span>
+                      <FaChevronDown className="text-xs" />
+                    </button>
+
+                    {adminMenuOpen && (
+                      <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border">
+                        {adminMenuItems.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.id}
+                              to={item.url}
+                              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              onClick={() => setAdminMenuOpen(false)}
+                            >
+                              <Icon className="mr-3 text-indigo-600" />
+                              {item.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}

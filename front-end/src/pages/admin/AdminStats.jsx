@@ -1,10 +1,11 @@
 import React from 'react';
 import {
   FaUsers, FaCar, FaRoute, FaClipboardList, FaUserCheck,
-  FaSync, FaCalendarAlt, FaExclamationTriangle, FaCheckCircle, FaClock
+  FaSync, FaCalendarAlt, FaExclamationTriangle, FaCheckCircle, FaClock,
+  FaDollarSign
 } from 'react-icons/fa';
 
-const AdminStats = ({ stats, onRefresh }) => {
+const AdminStats = ({ stats, onRefresh, onNavigate }) => {
   if (!stats) {
     return (
       <div className="text-center py-12">
@@ -22,6 +23,13 @@ const AdminStats = ({ stats, onRefresh }) => {
       description: 'Tous les comptes'
     },
     {
+      title: 'Voyageurs',
+      value: stats.total_voyageurs || 0,
+      icon: FaUsers,
+      color: 'bg-indigo-500',
+      description: 'Comptes voyageurs'
+    },
+    {
       title: 'Conducteurs',
       value: stats.total_conducteurs || 0,
       icon: FaUserCheck,
@@ -36,10 +44,17 @@ const AdminStats = ({ stats, onRefresh }) => {
       description: 'Trajets créés'
     },
     {
+      title: 'Total Véhicules',
+      value: stats.total_vehicules || 0,
+      icon: FaCar,
+      color: 'bg-orange-500',
+      description: 'Véhicules enregistrés'
+    },
+    {
       title: 'Réservations',
       value: stats.total_reservations || 0,
       icon: FaClipboardList,
-      color: 'bg-orange-500',
+      color: 'bg-teal-500',
       description: 'Réservations totales'
     }
   ];
@@ -47,24 +62,24 @@ const AdminStats = ({ stats, onRefresh }) => {
   const alertCards = [
     {
       title: 'Comptes en attente',
-      value: stats.pending_verifications || 0,
+      value: stats.pending_accounts || 0,
       icon: FaClock,
       color: 'bg-yellow-500',
       type: 'warning'
     },
     {
-      title: 'Véhicules à vérifier',
-      value: stats.pending_vehicles || 0,
-      icon: FaCar,
-      color: 'bg-blue-500',
-      type: 'info'
-    },
-    {
-      title: 'Trajets actifs',
-      value: stats.active_trips || 0,
-      icon: FaRoute,
+      title: 'Utilisateurs actifs',
+      value: stats.active_users || 0,
+      icon: FaUsers,
       color: 'bg-green-500',
       type: 'success'
+    },
+    {
+      title: 'Revenus ce mois',
+      value: `${stats.monthly_revenue || 0} MAD`,
+      icon: FaClipboardList,
+      color: 'bg-emerald-500',
+      type: 'info'
     }
   ];
 
@@ -200,8 +215,11 @@ const AdminStats = ({ stats, onRefresh }) => {
       {/* Actions rapides */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <button
+            onClick={() => onNavigate && onNavigate('users')}
+            className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors"
+          >
             <FaUsers className="text-blue-500 text-xl" />
             <div className="text-left">
               <p className="font-medium text-gray-900">Gérer les utilisateurs</p>
@@ -209,7 +227,21 @@ const AdminStats = ({ stats, onRefresh }) => {
             </div>
           </button>
 
-          <button className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <button
+            onClick={() => onNavigate && onNavigate('verification')}
+            className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-orange-300 transition-colors"
+          >
+            <FaUserCheck className="text-orange-500 text-xl" />
+            <div className="text-left">
+              <p className="font-medium text-gray-900">Vérifier comptes</p>
+              <p className="text-sm text-gray-500">Valider les documents</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate && onNavigate('vehicles')}
+            className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-green-300 transition-colors"
+          >
             <FaCar className="text-green-500 text-xl" />
             <div className="text-left">
               <p className="font-medium text-gray-900">Vérifier véhicules</p>
@@ -217,7 +249,10 @@ const AdminStats = ({ stats, onRefresh }) => {
             </div>
           </button>
 
-          <button className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <button
+            onClick={() => onNavigate && onNavigate('trips')}
+            className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-colors"
+          >
             <FaRoute className="text-purple-500 text-xl" />
             <div className="text-left">
               <p className="font-medium text-gray-900">Modérer trajets</p>

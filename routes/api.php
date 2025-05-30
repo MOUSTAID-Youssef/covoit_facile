@@ -2,6 +2,73 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// ==================== ROUTES PUBLIQUES ====================
+// Statistiques publiques pour la page d'accueil
+Route::get('/public/stats', function () {
+    try {
+        $stats = [
+            'total_users' => \App\Models\User::count(),
+            'total_trajets' => \App\Models\Trajet::count(),
+            'total_vehicules' => \App\Models\Vehicule::count(),
+            'total_reservations' => \App\Models\Reservation::count(),
+            'co2_economise' => \App\Models\Trajet::sum('places_disponibles') * 2.3 * 100, // Estimation CO2 économisé
+            'trajets_actifs' => \App\Models\Trajet::where('statut', 'actif')->count(),
+            'utilisateurs_actifs' => \App\Models\User::where('statut', 'actif')->count()
+        ];
+
+        return response()->json([
+            'success' => true,
+            'stats' => $stats
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors du chargement des statistiques'
+        ], 500);
+    }
+});
+
+// Témoignages publics pour la page d'accueil
+Route::get('/public/testimonials', function () {
+    try {
+        // Pour l'instant, on retourne des témoignages statiques
+        // Plus tard, on pourra créer une table testimonials
+        $testimonials = [
+            [
+                'name' => 'Ahmed Benali',
+                'role' => 'Conducteur',
+                'comment' => 'CovoitFacile m\'a permis de rencontrer des personnes formidables tout en réduisant mes frais de transport.',
+                'rating' => 5,
+                'avatar' => 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+            ],
+            [
+                'name' => 'Fatima Zahra',
+                'role' => 'Voyageuse',
+                'comment' => 'Grâce à CovoitFacile, je voyage de Casablanca à Rabat chaque semaine. C\'est économique et convivial !',
+                'rating' => 5,
+                'avatar' => 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+            ],
+            [
+                'name' => 'Omar Tazi',
+                'role' => 'Étudiant',
+                'comment' => 'En tant qu\'étudiant, CovoitFacile me permet de voyager à petit prix. Les conducteurs sont sympas !',
+                'rating' => 5,
+                'avatar' => 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+            ]
+        ];
+
+        return response()->json([
+            'success' => true,
+            'testimonials' => $testimonials
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors du chargement des témoignages'
+        ], 500);
+    }
+});
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -468,10 +535,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'total_conducteurs' => \App\Models\User::where('role', 'conducteur')->count(),
                 'total_voyageurs' => \App\Models\User::where('role', 'voyageur')->count(),
                 'total_trajets' => \App\Models\Trajet::count(),
+                'total_vehicules' => \App\Models\Vehicule::count(),
                 'active_trips' => \App\Models\Trajet::where('statut', 'actif')->count(),
                 'total_reservations' => \App\Models\Reservation::count(),
                 'pending_verifications' => \App\Models\User::where('badge_verifie', false)->count(),
                 'pending_vehicles' => \App\Models\Vehicule::where('statut_verification', 'en_attente')->count(),
+                'co2_economise' => \App\Models\Trajet::where('statut', 'termine')->sum('prix') * 0.1, // Estimation
                 'monthly_stats' => [
                     ['month' => 'Jan', 'users' => 45, 'trips' => 23],
                     ['month' => 'Fév', 'users' => 52, 'trips' => 31],
@@ -493,25 +562,38 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 return response()->json(['message' => 'Accès non autorisé'], 403);
             }
 
-            $users = \App\Models\User::with(['vehicules'])
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($user) {
-                    return [
-                        'id' => $user->id,
-                        'prenom' => $user->prenom,
-                        'nom' => $user->nom,
-                        'email' => $user->email,
-                        'role' => $user->role,
-                        'statut' => $user->statut,
-                        'badge_verifie' => $user->badge_verifie,
-                        'photo_url' => $user->photo_url,
-                        'created_at' => $user->created_at,
-                        'vehicules_count' => $user->vehicules->count()
-                    ];
-                });
+            try {
+                $users = \App\Models\User::with(['vehicules', 'trajets', 'reservations'])
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($user) {
+                        return [
+                            'id' => $user->id,
+                            'prenom' => $user->prenom,
+                            'nom' => $user->nom,
+                            'email' => $user->email,
+                            'telephone' => $user->telephone,
+                            'role' => $user->role,
+                            'statut' => $user->statut,
+                            'badge_verifie' => $user->badge_verifie,
+                            'photo_url' => $user->photo_url,
+                            'cin_path' => $user->cin_path,
+                            'created_at' => $user->created_at,
+                            'updated_at' => $user->updated_at,
+                            'vehicules_count' => $user->vehicules->count(),
+                            'trajets_count' => $user->trajets->count(),
+                            'reservations_count' => $user->reservations->count(),
+                            'last_login' => $user->updated_at // Approximation
+                        ];
+                    });
 
-            return response()->json(['success' => true, 'users' => $users]);
+                return response()->json(['success' => true, 'users' => $users]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur lors du chargement des utilisateurs: ' . $e->getMessage()
+                ], 500);
+            }
         });
 
         Route::put('/users/{id}', function (Request $request, $id) {
@@ -521,14 +603,40 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 return response()->json(['message' => 'Accès non autorisé'], 403);
             }
 
-            $targetUser = \App\Models\User::findOrFail($id);
-            $targetUser->update($request->only(['statut', 'badge_verifie']));
+            try {
+                $targetUser = \App\Models\User::findOrFail($id);
 
-            return response()->json([
-                'success' => true,
-                'user' => $targetUser,
-                'message' => 'Utilisateur mis à jour avec succès'
-            ]);
+                // Validation des données
+                $validatedData = $request->validate([
+                    'statut' => 'sometimes|in:actif,bloque,suspendu',
+                    'badge_verifie' => 'sometimes|boolean',
+                    'role' => 'sometimes|in:voyageur,conducteur,admin'
+                ]);
+
+                $targetUser->update($validatedData);
+
+                return response()->json([
+                    'success' => true,
+                    'user' => $targetUser->fresh(),
+                    'message' => 'Utilisateur mis à jour avec succès'
+                ]);
+            } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Utilisateur non trouvé'
+                ], 404);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Données invalides',
+                    'errors' => $e->errors()
+                ], 422);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur lors de la mise à jour: ' . $e->getMessage()
+                ], 500);
+            }
         });
 
         Route::delete('/users/{id}', function (Request $request, $id) {
@@ -779,6 +887,110 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'reservation' => $reservation->load(['voyageur', 'trajet'])
         ]);
     });
+
+    // Gestion des véhicules par les conducteurs
+    Route::get('/my-vehicles', function (Request $request) {
+        $user = $request->user();
+
+        if ($user->role !== 'conducteur') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seuls les conducteurs peuvent gérer des véhicules'
+            ], 403);
+        }
+
+        $vehicles = \App\Models\Vehicule::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'vehicles' => $vehicles
+        ]);
+    });
+
+    Route::post('/my-vehicles', function (Request $request) {
+        $user = $request->user();
+
+        if ($user->role !== 'conducteur') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seuls les conducteurs peuvent ajouter des véhicules'
+            ], 403);
+        }
+
+        $validatedData = $request->validate([
+            'marque' => 'required|string|max:255',
+            'modele' => 'required|string|max:255',
+            'annee' => 'required|integer|min:1990|max:' . (date('Y') + 1),
+            'couleur' => 'required|string|max:255',
+            'nombre_places' => 'required|integer|min:1|max:8',
+            'type_vehicule' => 'required|in:berline,suv,break,coupe,cabriolet,monospace,utilitaire'
+        ]);
+
+        $vehicle = \App\Models\Vehicule::create([
+            'user_id' => $user->id,
+            'marque' => $validatedData['marque'],
+            'modele' => $validatedData['modele'],
+            'annee' => $validatedData['annee'],
+            'couleur' => $validatedData['couleur'],
+            'nombre_places' => $validatedData['nombre_places'],
+            'type_vehicule' => $validatedData['type_vehicule'],
+            'statut_verification' => 'en_attente'
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'vehicle' => $vehicle,
+            'message' => 'Véhicule ajouté avec succès'
+        ]);
+    });
+
+    Route::put('/my-vehicles/{vehicle}', function (\App\Models\Vehicule $vehicle, Request $request) {
+        $user = $request->user();
+
+        if ($vehicle->user_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous ne pouvez modifier que vos propres véhicules'
+            ], 403);
+        }
+
+        $validatedData = $request->validate([
+            'marque' => 'required|string|max:255',
+            'modele' => 'required|string|max:255',
+            'annee' => 'required|integer|min:1990|max:' . (date('Y') + 1),
+            'couleur' => 'required|string|max:255',
+            'nombre_places' => 'required|integer|min:1|max:8',
+            'type_vehicule' => 'required|in:berline,suv,break,coupe,cabriolet,monospace,utilitaire'
+        ]);
+
+        $vehicle->update($validatedData);
+
+        return response()->json([
+            'success' => true,
+            'vehicle' => $vehicle->fresh(),
+            'message' => 'Véhicule mis à jour avec succès'
+        ]);
+    });
+
+    Route::delete('/my-vehicles/{vehicle}', function (\App\Models\Vehicule $vehicle, Request $request) {
+        $user = $request->user();
+
+        if ($vehicle->user_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous ne pouvez supprimer que vos propres véhicules'
+            ], 403);
+        }
+
+        $vehicle->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Véhicule supprimé avec succès'
+        ]);
+    });
 });
 
 // Routes admin
@@ -907,34 +1119,54 @@ Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
 
     // Statistiques du dashboard
     Route::get('/stats', function () {
-        $totalUsers = \App\Models\User::count();
-        $totalConducteurs = \App\Models\User::where('role', 'conducteur')->count();
-        $totalTrajets = \App\Models\Trajet::count();
-        $totalReservations = \App\Models\Reservation::count();
+        try {
+            $totalUsers = \App\Models\User::count();
+            $totalVoyageurs = \App\Models\User::where('role', 'voyageur')->count();
+            $totalConducteurs = \App\Models\User::where('role', 'conducteur')->count();
+            $totalTrajets = \App\Models\Trajet::count();
+            $totalVehicules = \App\Models\Vehicule::count();
+            $totalReservations = \App\Models\Reservation::count();
+            $pendingAccounts = \App\Models\User::where('badge_verifie', false)
+                ->whereNotNull('cin_path')->count();
+            $activeUsers = \App\Models\User::where('statut', 'actif')->count();
+            $monthlyRevenue = \App\Models\Reservation::where('statut', 'confirmee')
+                ->whereMonth('created_at', now()->month)
+                ->sum('prix_total') ?? 0;
 
-        // Statistiques par mois (6 derniers mois)
-        $monthlyStats = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
-            $monthlyStats[] = [
-                'month' => $date->format('M Y'),
-                'users' => \App\Models\User::whereMonth('created_at', $date->month)
-                    ->whereYear('created_at', $date->year)->count(),
-                'trips' => \App\Models\Trajet::whereMonth('created_at', $date->month)
-                    ->whereYear('created_at', $date->year)->count(),
-            ];
+            // Statistiques par mois (6 derniers mois)
+            $monthlyStats = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $monthlyStats[] = [
+                    'month' => $date->format('M Y'),
+                    'users' => \App\Models\User::whereMonth('created_at', $date->month)
+                        ->whereYear('created_at', $date->year)->count(),
+                    'trips' => \App\Models\Trajet::whereMonth('created_at', $date->month)
+                        ->whereYear('created_at', $date->year)->count(),
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'stats' => [
+                    'total_users' => $totalUsers,
+                    'total_voyageurs' => $totalVoyageurs,
+                    'total_conducteurs' => $totalConducteurs,
+                    'total_trajets' => $totalTrajets,
+                    'total_vehicules' => $totalVehicules,
+                    'total_reservations' => $totalReservations,
+                    'pending_accounts' => $pendingAccounts,
+                    'active_users' => $activeUsers,
+                    'monthly_revenue' => $monthlyRevenue,
+                    'monthly_stats' => $monthlyStats
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du chargement des statistiques: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'stats' => [
-                'total_users' => $totalUsers,
-                'total_conducteurs' => $totalConducteurs,
-                'total_trajets' => $totalTrajets,
-                'total_reservations' => $totalReservations,
-                'monthly_stats' => $monthlyStats
-            ]
-        ]);
     });
 });
 
