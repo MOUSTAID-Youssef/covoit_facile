@@ -453,6 +453,265 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // Routes pour les conducteurs - Gestion des réservations de leurs trajets
+    // ==================== ROUTES ADMIN ====================
+    Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
+        // Statistiques admin
+        Route::get('/stats', function (Request $request) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $stats = [
+                'total_users' => \App\Models\User::count(),
+                'total_conducteurs' => \App\Models\User::where('role', 'conducteur')->count(),
+                'total_voyageurs' => \App\Models\User::where('role', 'voyageur')->count(),
+                'total_trajets' => \App\Models\Trajet::count(),
+                'active_trips' => \App\Models\Trajet::where('statut', 'actif')->count(),
+                'total_reservations' => \App\Models\Reservation::count(),
+                'pending_verifications' => \App\Models\User::where('badge_verifie', false)->count(),
+                'pending_vehicles' => \App\Models\Vehicule::where('statut_verification', 'en_attente')->count(),
+                'monthly_stats' => [
+                    ['month' => 'Jan', 'users' => 45, 'trips' => 23],
+                    ['month' => 'Fév', 'users' => 52, 'trips' => 31],
+                    ['month' => 'Mar', 'users' => 38, 'trips' => 28],
+                    ['month' => 'Avr', 'users' => 61, 'trips' => 42],
+                    ['month' => 'Mai', 'users' => 73, 'trips' => 56],
+                    ['month' => 'Juin', 'users' => 89, 'trips' => 67]
+                ]
+            ];
+
+            return response()->json(['success' => true, 'stats' => $stats]);
+        });
+
+        // Gestion des utilisateurs
+        Route::get('/users', function (Request $request) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $users = \App\Models\User::with(['vehicules'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'prenom' => $user->prenom,
+                        'nom' => $user->nom,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'statut' => $user->statut,
+                        'badge_verifie' => $user->badge_verifie,
+                        'photo_url' => $user->photo_url,
+                        'created_at' => $user->created_at,
+                        'vehicules_count' => $user->vehicules->count()
+                    ];
+                });
+
+            return response()->json(['success' => true, 'users' => $users]);
+        });
+
+        Route::put('/users/{id}', function (Request $request, $id) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $targetUser = \App\Models\User::findOrFail($id);
+            $targetUser->update($request->only(['statut', 'badge_verifie']));
+
+            return response()->json([
+                'success' => true,
+                'user' => $targetUser,
+                'message' => 'Utilisateur mis à jour avec succès'
+            ]);
+        });
+
+        Route::delete('/users/{id}', function (Request $request, $id) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $targetUser = \App\Models\User::findOrFail($id);
+            $targetUser->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Utilisateur supprimé avec succès'
+            ]);
+        });
+
+        // Gestion des trajets
+        Route::get('/trips', function (Request $request) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $trips = \App\Models\Trajet::with(['conducteur', 'reservations'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($trip) {
+                    return [
+                        'id' => $trip->id,
+                        'ville_depart' => $trip->ville_depart,
+                        'ville_arrivee' => $trip->ville_arrivee,
+                        'date_depart' => $trip->date_depart,
+                        'heure_depart' => $trip->heure_depart,
+                        'prix' => $trip->prix,
+                        'places_disponibles' => $trip->places_disponibles,
+                        'statut' => $trip->statut,
+                        'created_at' => $trip->created_at,
+                        'conducteur' => [
+                            'id' => $trip->conducteur->id,
+                            'prenom' => $trip->conducteur->prenom,
+                            'nom' => $trip->conducteur->nom,
+                            'email' => $trip->conducteur->email,
+                            'photo_url' => $trip->conducteur->photo_url
+                        ],
+                        'reservations_count' => $trip->reservations->count()
+                    ];
+                });
+
+            return response()->json(['success' => true, 'trips' => $trips]);
+        });
+
+        Route::put('/trips/{id}', function (Request $request, $id) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $trip = \App\Models\Trajet::findOrFail($id);
+            $trip->update($request->only(['statut']));
+
+            return response()->json([
+                'success' => true,
+                'trip' => $trip,
+                'message' => 'Trajet mis à jour avec succès'
+            ]);
+        });
+
+        Route::delete('/trips/{id}', function (Request $request, $id) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $trip = \App\Models\Trajet::findOrFail($id);
+            $trip->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Trajet supprimé avec succès'
+            ]);
+        });
+
+        // Gestion des véhicules
+        Route::get('/vehicles', function (Request $request) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $vehicles = \App\Models\Vehicule::with(['user'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($vehicle) {
+                    return [
+                        'id' => $vehicle->id,
+                        'marque' => $vehicle->marque,
+                        'modele' => $vehicle->modele,
+                        'annee' => $vehicle->annee,
+                        'couleur' => $vehicle->couleur,
+                        'nombre_places' => $vehicle->nombre_places,
+                        'type_vehicule' => $vehicle->type_vehicule,
+                        'statut_verification' => $vehicle->statut_verification,
+                        'commentaire_verification' => $vehicle->commentaire_verification,
+                        'created_at' => $vehicle->created_at,
+                        'user' => [
+                            'id' => $vehicle->user->id,
+                            'prenom' => $vehicle->user->prenom,
+                            'nom' => $vehicle->user->nom,
+                            'email' => $vehicle->user->email,
+                            'photo_url' => $vehicle->user->photo_url
+                        ]
+                    ];
+                });
+
+            return response()->json(['success' => true, 'vehicles' => $vehicles]);
+        });
+
+        Route::put('/vehicles/{id}', function (Request $request, $id) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $vehicle = \App\Models\Vehicule::findOrFail($id);
+            $vehicle->update($request->only(['statut_verification', 'commentaire_verification']));
+
+            return response()->json([
+                'success' => true,
+                'vehicle' => $vehicle,
+                'message' => 'Véhicule mis à jour avec succès'
+            ]);
+        });
+
+        // Gestion des réservations
+        Route::get('/reservations', function (Request $request) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $reservations = \App\Models\Reservation::with(['voyageur', 'trajet.conducteur'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($reservation) {
+                    return [
+                        'id' => $reservation->id,
+                        'nombre_places' => $reservation->nombre_places,
+                        'statut' => $reservation->statut,
+                        'created_at' => $reservation->created_at,
+                        'voyageur' => [
+                            'id' => $reservation->voyageur->id,
+                            'prenom' => $reservation->voyageur->prenom,
+                            'nom' => $reservation->voyageur->nom,
+                            'email' => $reservation->voyageur->email,
+                            'photo_url' => $reservation->voyageur->photo_url
+                        ],
+                        'trajet' => [
+                            'id' => $reservation->trajet->id,
+                            'ville_depart' => $reservation->trajet->ville_depart,
+                            'ville_arrivee' => $reservation->trajet->ville_arrivee,
+                            'date_depart' => $reservation->trajet->date_depart,
+                            'heure_depart' => $reservation->trajet->heure_depart,
+                            'prix' => $reservation->trajet->prix,
+                            'conducteur' => [
+                                'prenom' => $reservation->trajet->conducteur->prenom,
+                                'nom' => $reservation->trajet->conducteur->nom
+                            ]
+                        ]
+                    ];
+                });
+
+            return response()->json(['success' => true, 'reservations' => $reservations]);
+        });
+    });
+
     Route::get('/my-trips-reservations', function (Request $request) {
         $user = $request->user();
 

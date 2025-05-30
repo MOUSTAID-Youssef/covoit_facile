@@ -112,25 +112,80 @@ class UserService {
   // Upload de pièce d'identité
   async uploadIdentityDocument(file) {
     try {
+      console.log('📄 Upload du document d\'identité...', file.name);
+
       const formData = new FormData();
-      formData.append('identity_document', file);
+      formData.append('document', file); // Changé de 'identity_document' à 'document'
 
-      const response = await apiClient.post('/profile/identity-document', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Essayer d'abord avec apiClient
+      let response;
+      try {
+        response = await apiClient.post('/profile/identity-document', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } catch (axiosError) {
+        console.log('🔄 Tentative avec fetch direct...');
+        return await this.uploadIdentityDocumentDirect(file);
+      }
 
+      console.log('✅ Document uploadé:', response.data);
       return {
         success: true,
-        data: response.data,
+        data: response.data.data,
         message: response.data.message
       };
     } catch (error) {
+      console.error('❌ Erreur lors de l\'upload du document:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Erreur lors de l\'upload du document',
         errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+
+  // Upload de pièce d'identité avec fetch direct (fallback)
+  async uploadIdentityDocumentDirect(file) {
+    try {
+      console.log('📄 Upload direct du document d\'identité...', file.name);
+
+      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+
+      const formData = new FormData();
+      formData.append('document', file);
+
+      const response = await fetch('http://localhost:8000/api/profile/identity-document', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      console.log('📤 Réponse upload direct:', data);
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Erreur lors de l\'upload du document',
+          errors: data.errors || {}
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+        message: data.message
+      };
+    } catch (error) {
+      console.error('💥 Erreur lors de l\'upload direct:', error);
+      return {
+        success: false,
+        message: 'Erreur de connexion: ' + error.message
       };
     }
   }

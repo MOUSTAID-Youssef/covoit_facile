@@ -11,8 +11,10 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedIdentityFile, setSelectedIdentityFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingIdentity, setUploadingIdentity] = useState(false);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [activeTab, setActiveTab] = useState('profile');
@@ -180,7 +182,67 @@ const Profile = () => {
     }
   };
 
+  const handleIdentityFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validation du fichier
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        setErrors(prev => ({
+          ...prev,
+          identity: 'Format non supporté. Utilisez PDF, JPG ou PNG.'
+        }));
+        return;
+      }
 
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        setErrors(prev => ({
+          ...prev,
+          identity: 'Fichier trop volumineux. Maximum 5MB.'
+        }));
+        return;
+      }
+
+      setSelectedIdentityFile(file);
+      setErrors(prev => ({ ...prev, identity: null }));
+    }
+  };
+
+  const handleIdentityUpload = async () => {
+    if (!selectedIdentityFile) return;
+
+    setUploadingIdentity(true);
+    setErrors(prev => ({ ...prev, identity: null }));
+
+    try {
+      console.log('📄 Upload du document d\'identité:', selectedIdentityFile.name);
+
+      const result = await userService.uploadIdentityDocument(selectedIdentityFile);
+
+      if (result.success) {
+        setSelectedIdentityFile(null);
+        setSuccessMessage('Document d\'identité téléchargé avec succès !');
+        setTimeout(() => setSuccessMessage(''), 3000);
+        // Recharger le profil pour obtenir les dernières informations
+        loadProfile();
+        // Réinitialiser le champ de fichier
+        document.getElementById('identity-upload').value = '';
+      } else {
+        setErrors(prev => ({
+          ...prev,
+          identity: result.message || 'Erreur lors de l\'upload'
+        }));
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'upload:', error);
+      setErrors(prev => ({
+        ...prev,
+        identity: 'Erreur lors de l\'upload du document'
+      }));
+    } finally {
+      setUploadingIdentity(false);
+    }
+  };
 
   const handleDeletePhoto = async () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer votre photo de profil ?')) {
@@ -548,18 +610,90 @@ const Profile = () => {
               )}
             </div>
 
-            {/* Identity Document Upload - Temporairement désactivé */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-              <FaIdCard className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600 mb-2">Pièce d'identité</p>
-              <p className="text-xs text-gray-500 mb-3">Fonctionnalité en cours de développement</p>
+            {/* Identity Document Upload */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
+              <FaIdCard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h4 className="text-lg font-medium text-gray-900 mb-2">Pièce d'identité</h4>
+              <p className="text-sm text-gray-500 mb-4">PDF, JPG, PNG - Maximum 5MB</p>
 
-              <button
-                disabled
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed"
-              >
-                Bientôt disponible
-              </button>
+              {/* Statut du document */}
+              {user.cin_path && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center justify-center mb-2">
+                    <FaCheck className="text-green-600 mr-2" />
+                    <p className="text-sm font-medium text-green-800">Document téléchargé</p>
+                  </div>
+                  <p className="text-xs text-green-600">
+                    Votre document d'identité a été téléchargé avec succès
+                  </p>
+                </div>
+              )}
+
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleIdentityFileChange}
+                className="hidden"
+                id="identity-upload"
+              />
+
+              <div className="space-y-3">
+                <label
+                  htmlFor="identity-upload"
+                  className="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                >
+                  <FaIdCard className="mr-2" />
+                  Choisir un document
+                </label>
+
+                {selectedIdentityFile && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center justify-center mb-3">
+                      <FaCheck className="text-blue-600 mr-2" />
+                      <p className="text-sm font-medium text-blue-800">Document sélectionné</p>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3 font-medium">{selectedIdentityFile.name}</p>
+                    <p className="text-xs text-blue-600 mb-4">
+                      Taille: {(selectedIdentityFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <div className="flex space-x-2 justify-center">
+                      <button
+                        onClick={handleIdentityUpload}
+                        disabled={uploadingIdentity}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                      >
+                        {uploadingIdentity ? (
+                          <>
+                            <FaSpinner className="animate-spin mr-2" />
+                            Téléchargement...
+                          </>
+                        ) : (
+                          <>
+                            <FaIdCard className="mr-2" />
+                            Enregistrer le document
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedIdentityFile(null);
+                          document.getElementById('identity-upload').value = '';
+                        }}
+                        disabled={uploadingIdentity}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {errors.identity && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600 font-medium">{errors.identity}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

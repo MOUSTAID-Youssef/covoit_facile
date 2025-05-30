@@ -15,6 +15,9 @@ import SimpleTest from './pages/SimpleTest';
 import MyTrips from './pages/MyTrips';
 import MyReservations from './pages/MyReservations';
 import ReservationTest from './pages/ReservationTest';
+import IdentityUploadTest from './pages/IdentityUploadTest';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminTest from './pages/AdminTest';
 import Register from './pages/Register';
 import Footer from './components/Footer';
 import LoginDebug from './components/LoginDebug';
@@ -23,16 +26,7 @@ import LoginDebug from './components/LoginDebug';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Admin imports
-import AdminLayout from './layouts/AdminLayout';
-import Dashboard from './pages/admin/DashboardNew';
-import TripsManagement from './pages/admin/TripsManagement';
-import UsersManagement from './pages/admin/UsersManagement';
-import VehiclesManagement from './pages/admin/VehiclesManagement';
-import Analytics from './pages/admin/Analytics';
-
-// Import admin styles
-import './styles/admin.css';
+// Suppression des imports d'anciens fichiers admin qui n'existent plus
 
 function App() {
   return (
@@ -57,6 +51,9 @@ function App() {
                   <Route path="/test-trips" element={<TripTest />} />
                   <Route path="/simple-test" element={<SimpleTest />} />
                   <Route path="/test-reservations" element={<ReservationTest />} />
+                  <Route path="/test-identity" element={<IdentityUploadTest />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/test-admin" element={<AdminTest />} />
                   <Route path="/debug-login" element={<LoginDebug />} />
 
                   {/* Protected Routes */}
@@ -86,19 +83,7 @@ function App() {
             </div>
           } />
 
-          {/* Admin Routes */}
-          <Route path="/admin/*" element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="trips" element={<TripsManagement />} />
-            <Route path="users" element={<UsersManagement />} />
-            <Route path="vehicles" element={<VehiclesManagement />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="settings" element={<div>Settings Page (À implémenter)</div>} />
-          </Route>
+          {/* Admin Routes - Utilisation du nouveau AdminDashboard */}
         </Routes>
       </Router>
     </AuthProvider>

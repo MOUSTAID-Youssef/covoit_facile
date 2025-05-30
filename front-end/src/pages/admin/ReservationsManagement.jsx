@@ -1,106 +1,68 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FaRoute, FaSearch, FaFilter, FaEdit, FaTrash, FaEye, FaMapMarkerAlt,
-  FaCalendarAlt, FaClock, FaEuroSign, FaUsers, FaSpinner, FaCheck, FaTimes,
-  FaExclamationTriangle, FaDownload, FaSort, FaCar
+  FaClipboardList, FaSearch, FaFilter, FaEye, FaSpinner, FaMapMarkerAlt,
+  FaCalendarAlt, FaClock, FaEuroSign, FaUsers, FaCheck, FaTimes,
+  FaExclamationTriangle, FaDownload, FaSort, FaUser
 } from 'react-icons/fa';
 import adminService from '../../services/adminService';
 
-const TripsManagement = () => {
-  const [trips, setTrips] = useState([]);
+const ReservationsManagement = () => {
+  const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDate, setFilterDate] = useState('all');
-  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [selectedReservation, setSelectedReservation] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    loadTrips();
+    loadReservations();
   }, []);
 
-  const loadTrips = async () => {
+  const loadReservations = async () => {
     setLoading(true);
     try {
-      const result = await adminService.getTrips();
+      const result = await adminService.getReservations();
       if (result.success) {
-        setTrips(result.data);
+        setReservations(result.data);
       } else {
         setErrorMessage(result.message);
       }
     } catch (error) {
-      setErrorMessage('Erreur lors du chargement des trajets');
+      setErrorMessage('Erreur lors du chargement des réservations');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteTrip = async (tripId) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce trajet ?')) return;
+  const filteredReservations = reservations.filter(reservation => {
+    const matchesSearch = reservation.voyageur?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         reservation.voyageur?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         reservation.trajet?.ville_depart?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         reservation.trajet?.ville_arrivee?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    setActionLoading(true);
-    try {
-      const result = await adminService.deleteTrip(tripId);
-      if (result.success) {
-        setSuccessMessage(result.message);
-        loadTrips();
-      } else {
-        setErrorMessage(result.message);
-      }
-    } catch (error) {
-      setErrorMessage('Erreur lors de la suppression');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleUpdateTripStatus = async (tripId, newStatus) => {
-    setActionLoading(true);
-    try {
-      const result = await adminService.updateTrip(tripId, { statut: newStatus });
-      if (result.success) {
-        setSuccessMessage(`Trajet ${newStatus} avec succès`);
-        loadTrips();
-      } else {
-        setErrorMessage(result.message);
-      }
-    } catch (error) {
-      setErrorMessage('Erreur lors de la mise à jour');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const filteredTrips = trips.filter(trip => {
-    const matchesSearch = trip.ville_depart?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         trip.ville_arrivee?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         trip.conducteur?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         trip.conducteur?.nom?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === 'all' || trip.statut === filterStatus;
+    const matchesStatus = filterStatus === 'all' || reservation.statut === filterStatus;
     
     const today = new Date();
-    const tripDate = new Date(trip.date_depart);
+    const reservationDate = new Date(reservation.created_at);
     const matchesDate = filterDate === 'all' ||
-                       (filterDate === 'today' && tripDate.toDateString() === today.toDateString()) ||
-                       (filterDate === 'upcoming' && tripDate > today) ||
-                       (filterDate === 'past' && tripDate < today);
+                       (filterDate === 'today' && reservationDate.toDateString() === today.toDateString()) ||
+                       (filterDate === 'week' && (today - reservationDate) / (1000 * 60 * 60 * 24) <= 7) ||
+                       (filterDate === 'month' && (today - reservationDate) / (1000 * 60 * 60 * 24) <= 30);
     
     return matchesSearch && matchesStatus && matchesDate;
   });
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'actif': { color: 'bg-green-100 text-green-800', icon: FaCheck, label: 'Actif' },
-      'complet': { color: 'bg-blue-100 text-blue-800', icon: FaUsers, label: 'Complet' },
-      'annule': { color: 'bg-red-100 text-red-800', icon: FaTimes, label: 'Annulé' },
-      'termine': { color: 'bg-gray-100 text-gray-800', icon: FaCheck, label: 'Terminé' }
+      'en_attente': { color: 'bg-yellow-100 text-yellow-800', icon: FaClock, label: 'En attente' },
+      'confirmee': { color: 'bg-green-100 text-green-800', icon: FaCheck, label: 'Confirmée' },
+      'annulee': { color: 'bg-red-100 text-red-800', icon: FaTimes, label: 'Annulée' }
     };
     
-    const config = statusConfig[status] || statusConfig['actif'];
+    const config = statusConfig[status] || statusConfig['en_attente'];
     const Icon = config.icon;
     
     return (
@@ -111,11 +73,17 @@ const TripsManagement = () => {
     );
   };
 
+  const calculateTotalRevenue = () => {
+    return filteredReservations
+      .filter(r => r.statut === 'confirmee')
+      .reduce((total, r) => total + (r.trajet?.prix * r.nombre_places || 0), 0);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <FaSpinner className="animate-spin text-2xl text-indigo-600" />
-        <span className="ml-2 text-gray-600">Chargement des trajets...</span>
+        <span className="ml-2 text-gray-600">Chargement des réservations...</span>
       </div>
     );
   }
@@ -125,10 +93,15 @@ const TripsManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des trajets</h1>
-          <p className="text-gray-600 mt-1">{trips.length} trajets au total</p>
+          <h1 className="text-2xl font-bold text-gray-900">Gestion des réservations</h1>
+          <p className="text-gray-600 mt-1">{reservations.length} réservations au total</p>
         </div>
         <div className="flex items-center space-x-3">
+          <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+            <span className="text-sm font-medium">
+              Revenus: {calculateTotalRevenue().toLocaleString()} MAD
+            </span>
+          </div>
           <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
             <FaDownload />
             <span>Exporter</span>
@@ -150,6 +123,55 @@ const TripsManagement = () => {
         </div>
       )}
 
+      {/* Statistiques rapides */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center">
+            <FaClipboardList className="text-blue-500 text-2xl mr-3" />
+            <div>
+              <p className="text-sm text-gray-600">Total</p>
+              <p className="text-xl font-bold text-gray-900">{reservations.length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center">
+            <FaClock className="text-yellow-500 text-2xl mr-3" />
+            <div>
+              <p className="text-sm text-gray-600">En attente</p>
+              <p className="text-xl font-bold text-gray-900">
+                {reservations.filter(r => r.statut === 'en_attente').length}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center">
+            <FaCheck className="text-green-500 text-2xl mr-3" />
+            <div>
+              <p className="text-sm text-gray-600">Confirmées</p>
+              <p className="text-xl font-bold text-gray-900">
+                {reservations.filter(r => r.statut === 'confirmee').length}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center">
+            <FaTimes className="text-red-500 text-2xl mr-3" />
+            <div>
+              <p className="text-sm text-gray-600">Annulées</p>
+              <p className="text-xl font-bold text-gray-900">
+                {reservations.filter(r => r.statut === 'annulee').length}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Filtres */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -157,7 +179,7 @@ const TripsManagement = () => {
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher un trajet..."
+              placeholder="Rechercher une réservation..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -170,10 +192,9 @@ const TripsManagement = () => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="all">Tous les statuts</option>
-            <option value="actif">Actifs</option>
-            <option value="complet">Complets</option>
-            <option value="annule">Annulés</option>
-            <option value="termine">Terminés</option>
+            <option value="en_attente">En attente</option>
+            <option value="confirmee">Confirmées</option>
+            <option value="annulee">Annulées</option>
           </select>
           
           <select
@@ -183,12 +204,12 @@ const TripsManagement = () => {
           >
             <option value="all">Toutes les dates</option>
             <option value="today">Aujourd'hui</option>
-            <option value="upcoming">À venir</option>
-            <option value="past">Passés</option>
+            <option value="week">Cette semaine</option>
+            <option value="month">Ce mois</option>
           </select>
           
           <button
-            onClick={loadTrips}
+            onClick={loadReservations}
             className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <FaSort />
@@ -197,26 +218,26 @@ const TripsManagement = () => {
         </div>
       </div>
 
-      {/* Table des trajets */}
+      {/* Table des réservations */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Voyageur
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Trajet
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Conducteur
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date & Heure
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Prix & Places
+                  Places & Prix
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Statut
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date de réservation
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -224,46 +245,35 @@ const TripsManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTrips.map((trip) => (
-                <tr key={trip.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <FaMapMarkerAlt className="text-indigo-500 mr-2" />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {trip.ville_depart} → {trip.ville_arrivee}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {trip.reservations_count || 0} réservation(s)
-                        </div>
-                      </div>
-                    </div>
-                  </td>
+              {filteredReservations.map((reservation) => (
+                <tr key={reservation.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
-                        src={trip.conducteur?.photo_url || '/default-avatar.png'}
+                        src={reservation.voyageur?.photo_url || '/default-avatar.png'}
                         alt=""
                         className="w-8 h-8 rounded-full border border-gray-200"
                       />
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">
-                          {trip.conducteur?.prenom} {trip.conducteur?.nom}
+                          {reservation.voyageur?.prenom} {reservation.voyageur?.nom}
                         </div>
-                        <div className="text-sm text-gray-500">{trip.conducteur?.email}</div>
+                        <div className="text-sm text-gray-500">{reservation.voyageur?.email}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <FaCalendarAlt className="text-gray-400" />
+                    <div className="flex items-center">
+                      <FaMapMarkerAlt className="text-indigo-500 mr-2" />
                       <div>
-                        <div className="text-sm text-gray-900">
-                          {new Date(trip.date_depart).toLocaleDateString('fr-FR')}
+                        <div className="text-sm font-medium text-gray-900">
+                          {reservation.trajet?.ville_depart} → {reservation.trajet?.ville_arrivee}
                         </div>
                         <div className="text-sm text-gray-500 flex items-center">
-                          <FaClock className="mr-1" />
-                          {trip.heure_depart}
+                          <FaCalendarAlt className="mr-1" />
+                          {new Date(reservation.trajet?.date_depart).toLocaleDateString('fr-FR')}
+                          <FaClock className="ml-2 mr-1" />
+                          {reservation.trajet?.heure_depart}
                         </div>
                       </div>
                     </div>
@@ -271,57 +281,32 @@ const TripsManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm text-gray-900 flex items-center">
-                        <FaEuroSign className="mr-1" />
-                        {trip.prix} MAD
+                        <FaUsers className="mr-1" />
+                        {reservation.nombre_places} place(s)
                       </div>
                       <div className="text-sm text-gray-500 flex items-center">
-                        <FaUsers className="mr-1" />
-                        {trip.places_disponibles}/{trip.places_totales || trip.places_disponibles}
+                        <FaEuroSign className="mr-1" />
+                        {(reservation.trajet?.prix * reservation.nombre_places || 0).toLocaleString()} MAD
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(trip.statut)}
+                    {getStatusBadge(reservation.statut)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(reservation.created_at).toLocaleDateString('fr-FR')}
+                    <div className="text-xs text-gray-400">
+                      {new Date(reservation.created_at).toLocaleTimeString('fr-FR')}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => setSelectedTrip(trip)}
+                        onClick={() => setSelectedReservation(reservation)}
                         className="text-indigo-600 hover:text-indigo-900 p-1"
                         title="Voir détails"
                       >
                         <FaEye />
-                      </button>
-                      
-                      {trip.statut === 'actif' && (
-                        <button
-                          onClick={() => handleUpdateTripStatus(trip.id, 'annule')}
-                          disabled={actionLoading}
-                          className="text-red-600 hover:text-red-900 p-1"
-                          title="Annuler"
-                        >
-                          <FaTimes />
-                        </button>
-                      )}
-                      
-                      {trip.statut === 'annule' && (
-                        <button
-                          onClick={() => handleUpdateTripStatus(trip.id, 'actif')}
-                          disabled={actionLoading}
-                          className="text-green-600 hover:text-green-900 p-1"
-                          title="Réactiver"
-                        >
-                          <FaCheck />
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => handleDeleteTrip(trip.id)}
-                        disabled={actionLoading}
-                        className="text-red-600 hover:text-red-900 p-1"
-                        title="Supprimer"
-                      >
-                        <FaTrash />
                       </button>
                     </div>
                   </td>
@@ -332,14 +317,14 @@ const TripsManagement = () => {
         </div>
       </div>
 
-      {filteredTrips.length === 0 && (
+      {filteredReservations.length === 0 && (
         <div className="text-center py-12">
-          <FaRoute className="mx-auto text-4xl text-gray-400 mb-4" />
-          <p className="text-gray-500">Aucun trajet trouvé</p>
+          <FaClipboardList className="mx-auto text-4xl text-gray-400 mb-4" />
+          <p className="text-gray-500">Aucune réservation trouvée</p>
         </div>
       )}
     </div>
   );
 };
 
-export default TripsManagement;
+export default ReservationsManagement;

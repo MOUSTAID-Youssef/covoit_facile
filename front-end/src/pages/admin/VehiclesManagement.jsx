@@ -1,240 +1,322 @@
-import React, { useState } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaEye, FaSearch, FaCar } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { 
+  FaCar, FaSearch, FaFilter, FaCheck, FaTimes, FaEye, FaSpinner,
+  FaExclamationTriangle, FaDownload, FaSort, FaUser, FaClock,
+  FaCheckCircle, FaTimesCircle
+} from 'react-icons/fa';
+import adminService from '../../services/adminService';
 
 const VehiclesManagement = () => {
-  const [vehicles, setVehicles] = useState([
-    {
-      id: 1,
-      brand: 'Toyota',
-      model: 'Corolla',
-      year: 2020,
-      color: 'Blanc',
-      licensePlate: '123456-A-78',
-      owner: 'Ahmed Benali',
-      ownerId: 1,
-      seats: 5,
-      status: 'active',
-      verified: true
-    },
-    {
-      id: 2,
-      brand: 'Renault',
-      model: 'Clio',
-      year: 2019,
-      color: 'Rouge',
-      licensePlate: '789012-B-34',
-      owner: 'Fatima Zahra',
-      ownerId: 2,
-      seats: 5,
-      status: 'active',
-      verified: true
-    },
-    {
-      id: 3,
-      brand: 'Peugeot',
-      model: '208',
-      year: 2021,
-      color: 'Noir',
-      licensePlate: '345678-C-90',
-      owner: 'Omar Tazi',
-      ownerId: 3,
-      seats: 5,
-      status: 'pending',
-      verified: false
-    },
-    {
-      id: 4,
-      brand: 'Dacia',
-      model: 'Logan',
-      year: 2018,
-      color: 'Gris',
-      licensePlate: '901234-D-56',
-      owner: 'Youssef Alami',
-      ownerId: 4,
-      seats: 5,
-      status: 'suspended',
-      verified: false
-    }
-  ]);
-
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [verificationComment, setVerificationComment] = useState('');
 
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      active: { class: 'badge-success', text: 'Actif' },
-      pending: { class: 'badge-warning', text: 'En attente' },
-      suspended: { class: 'badge-danger', text: 'Suspendu' }
-    };
-    return statusMap[status] || { class: 'badge-secondary', text: status };
+  useEffect(() => {
+    loadVehicles();
+  }, []);
+
+  const loadVehicles = async () => {
+    setLoading(true);
+    try {
+      const result = await adminService.getVehicles();
+      if (result.success) {
+        setVehicles(result.data);
+      } else {
+        setErrorMessage(result.message);
+      }
+    } catch (error) {
+      setErrorMessage('Erreur lors du chargement des véhicules');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyVehicle = async (vehicleId, status) => {
+    setActionLoading(true);
+    try {
+      const result = await adminService.verifyVehicle(vehicleId, status, verificationComment);
+      if (result.success) {
+        setSuccessMessage(result.message);
+        setVerificationComment('');
+        loadVehicles();
+      } else {
+        setErrorMessage(result.message);
+      }
+    } catch (error) {
+      setErrorMessage('Erreur lors de la vérification');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesSearch = vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.owner.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || vehicle.status === statusFilter;
+    const matchesSearch = vehicle.marque?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         vehicle.modele?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         vehicle.user?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         vehicle.user?.nom?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === 'all' || vehicle.statut_verification === filterStatus;
+    
     return matchesSearch && matchesStatus;
   });
 
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      'en_attente': { color: 'bg-yellow-100 text-yellow-800', icon: FaClock, label: 'En attente' },
+      'verifie': { color: 'bg-green-100 text-green-800', icon: FaCheckCircle, label: 'Vérifié' },
+      'rejete': { color: 'bg-red-100 text-red-800', icon: FaTimesCircle, label: 'Rejeté' }
+    };
+    
+    const config = statusConfig[status] || statusConfig['en_attente'];
+    const Icon = config.icon;
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+        <Icon className="mr-1" />
+        {config.label}
+      </span>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <FaSpinner className="animate-spin text-2xl text-indigo-600" />
+        <span className="ml-2 text-gray-600">Chargement des véhicules...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="vehicles-management-page">
-      <div className="page-header">
-        <div className="page-title-section">
-          <h1 className="page-title">Gestion des Véhicules</h1>
-          <p className="page-subtitle">Gérez tous les véhicules enregistrés sur la plateforme</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gestion des véhicules</h1>
+          <p className="text-gray-600 mt-1">{vehicles.length} véhicules au total</p>
         </div>
-        <div className="page-actions">
-          <button className="btn btn-primary">
-            <FaPlus className="btn-icon" />
-            Nouveau Véhicule
+        <div className="flex items-center space-x-3">
+          <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <FaDownload />
+            <span>Exporter</span>
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="vehicles-stats">
-        <div className="stat-card">
-          <div className="stat-value">1,234</div>
-          <div className="stat-label">Total Véhicules</div>
+      {/* Messages */}
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+          {successMessage}
+          <button onClick={() => setSuccessMessage('')} className="float-right">×</button>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">1,156</div>
-          <div className="stat-label">Véhicules Actifs</div>
+      )}
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {errorMessage}
+          <button onClick={() => setErrorMessage('')} className="float-right">×</button>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">45</div>
-          <div className="stat-label">En Attente</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">33</div>
-          <div className="stat-label">Suspendus</div>
+      )}
+
+      {/* Filtres */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un véhicule..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="all">Tous les statuts</option>
+            <option value="en_attente">En attente</option>
+            <option value="verifie">Vérifiés</option>
+            <option value="rejete">Rejetés</option>
+          </select>
+          
+          <button
+            onClick={loadVehicles}
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            <FaSort />
+            <span>Actualiser</span>
+          </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="filters-section">
-        <div className="filters-row">
-          <div className="search-filter">
-            <div className="search-input-wrapper">
-              <FaSearch className="search-icon" />
-              <input
-                type="text"
-                placeholder="Rechercher par marque, modèle, plaque ou propriétaire..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
-              />
-            </div>
-          </div>
-          
-          <div className="status-filter">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="active">Actif</option>
-              <option value="pending">En attente</option>
-              <option value="suspended">Suspendu</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Vehicles Table */}
-      <div className="vehicles-table-section">
-        <div className="table-card">
-          <div className="table-header">
-            <h5 className="table-title">Liste des Véhicules ({filteredVehicles.length})</h5>
-          </div>
-          
-          <div className="table-responsive">
-            <table className="vehicles-table">
-              <thead>
-                <tr>
-                  <th>Véhicule</th>
-                  <th>Plaque d'immatriculation</th>
-                  <th>Propriétaire</th>
-                  <th>Places</th>
-                  <th>Statut</th>
-                  <th>Vérifié</th>
-                  <th>Actions</th>
+      {/* Table des véhicules */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Véhicule
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Propriétaire
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Détails
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Statut
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date d'ajout
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredVehicles.map((vehicle) => (
+                <tr key={vehicle.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <FaCar className="text-indigo-500 mr-3 text-xl" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {vehicle.marque} {vehicle.modele}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {vehicle.annee} • {vehicle.couleur}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <img
+                        src={vehicle.user?.photo_url || '/default-avatar.png'}
+                        alt=""
+                        className="w-8 h-8 rounded-full border border-gray-200"
+                      />
+                      <div className="ml-3">
+                        <div className="text-sm font-medium text-gray-900">
+                          {vehicle.user?.prenom} {vehicle.user?.nom}
+                        </div>
+                        <div className="text-sm text-gray-500">{vehicle.user?.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      <div>Places: {vehicle.nombre_places}</div>
+                      <div className="text-gray-500">Type: {vehicle.type_vehicule}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {getStatusBadge(vehicle.statut_verification)}
+                    {vehicle.commentaire_verification && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {vehicle.commentaire_verification}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(vehicle.created_at).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setSelectedVehicle(vehicle)}
+                        className="text-indigo-600 hover:text-indigo-900 p-1"
+                        title="Voir détails"
+                      >
+                        <FaEye />
+                      </button>
+                      
+                      {vehicle.statut_verification === 'en_attente' && (
+                        <>
+                          <button
+                            onClick={() => handleVerifyVehicle(vehicle.id, 'verifie')}
+                            disabled={actionLoading}
+                            className="text-green-600 hover:text-green-900 p-1"
+                            title="Approuver"
+                          >
+                            <FaCheck />
+                          </button>
+                          <button
+                            onClick={() => handleVerifyVehicle(vehicle.id, 'rejete')}
+                            disabled={actionLoading}
+                            className="text-red-600 hover:text-red-900 p-1"
+                            title="Rejeter"
+                          >
+                            <FaTimes />
+                          </button>
+                        </>
+                      )}
+                      
+                      {vehicle.statut_verification === 'rejete' && (
+                        <button
+                          onClick={() => handleVerifyVehicle(vehicle.id, 'verifie')}
+                          disabled={actionLoading}
+                          className="text-green-600 hover:text-green-900 p-1"
+                          title="Approuver"
+                        >
+                          <FaCheck />
+                        </button>
+                      )}
+                      
+                      {vehicle.statut_verification === 'verifie' && (
+                        <button
+                          onClick={() => handleVerifyVehicle(vehicle.id, 'rejete')}
+                          disabled={actionLoading}
+                          className="text-red-600 hover:text-red-900 p-1"
+                          title="Rejeter"
+                        >
+                          <FaTimes />
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredVehicles.map(vehicle => {
-                  const statusBadge = getStatusBadge(vehicle.status);
-                  return (
-                    <tr key={vehicle.id}>
-                      <td>
-                        <div className="vehicle-info">
-                          <div className="vehicle-icon">
-                            <FaCar />
-                          </div>
-                          <div className="vehicle-details">
-                            <div className="vehicle-name">
-                              {vehicle.brand} {vehicle.model}
-                            </div>
-                            <div className="vehicle-year-color">
-                              {vehicle.year} • {vehicle.color}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="license-plate">{vehicle.licensePlate}</span>
-                      </td>
-                      <td>
-                        <div className="owner-info">
-                          <div className="owner-name">{vehicle.owner}</div>
-                          <div className="owner-id">ID: #{vehicle.ownerId}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="seats-count">{vehicle.seats} places</span>
-                      </td>
-                      <td>
-                        <span className={`badge ${statusBadge.class}`}>
-                          {statusBadge.text}
-                        </span>
-                      </td>
-                      <td>
-                        {vehicle.verified ? (
-                          <span className="verified-badge">✓ Vérifié</span>
-                        ) : (
-                          <span className="unverified-badge">⚠ Non vérifié</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button className="btn-action btn-view" title="Voir">
-                            <FaEye />
-                          </button>
-                          <button className="btn-action btn-edit" title="Modifier">
-                            <FaEdit />
-                          </button>
-                          <button className="btn-action btn-delete" title="Supprimer">
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          
-          {filteredVehicles.length === 0 && (
-            <div className="empty-state">
-              <p>Aucun véhicule trouvé pour les critères sélectionnés.</p>
-            </div>
-          )}
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
+
+      {/* Zone de commentaire pour la vérification */}
+      {vehicles.some(v => v.statut_verification === 'en_attente') && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Commentaire de vérification</h3>
+          <textarea
+            value={verificationComment}
+            onChange={(e) => setVerificationComment(e.target.value)}
+            placeholder="Ajoutez un commentaire pour la vérification (optionnel)..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            rows={3}
+          />
+          <p className="text-sm text-gray-500 mt-2">
+            Ce commentaire sera visible par le propriétaire du véhicule.
+          </p>
+        </div>
+      )}
+
+      {filteredVehicles.length === 0 && (
+        <div className="text-center py-12">
+          <FaCar className="mx-auto text-4xl text-gray-400 mb-4" />
+          <p className="text-gray-500">Aucun véhicule trouvé</p>
+        </div>
+      )}
     </div>
   );
 };
