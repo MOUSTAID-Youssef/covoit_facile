@@ -14,11 +14,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        // \App\Models\User::factory(10)->create();
+        // Utiliser le seeder complet (sans Hash::make car le mutateur s'en charge)
+        $this->call([
+            CompleteSeeder::class,
+        ]);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
+        // Seeders complets (commentés pour éviter les erreurs)
+        // $this->call([
+        //     UserSeeder::class,
+        //     VehiculeSeeder::class,
+        //     TrajetSeeder::class,
+        //     ReservationSeeder::class,
         // ]);
     }
 }

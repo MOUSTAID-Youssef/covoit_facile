@@ -1,56 +1,228 @@
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaCar, FaBars, FaTimes, FaUser, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
 
 function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const toggleUserMenu = () => {
+    setUserMenuOpen(!userMenuOpen);
+  };
+
+  const handleLogout = async () => {
+    console.log('🔄 Clic sur déconnexion dans Navbar...');
+    console.log('👤 Utilisateur actuel:', user);
+    console.log('🔐 État authentifié:', isAuthenticated);
+
+    try {
+      await logout();
+      console.log('✅ Logout terminé, fermeture du menu...');
+      setUserMenuOpen(false);
+      console.log('🏠 Navigation vers la page d\'accueil...');
+      navigate('/');
+    } catch (error) {
+      console.error('❌ Erreur dans handleLogout:', error);
+    }
+  };
+
   return (
-    <nav className="bg-white/70 backdrop-blur-xl shadow-xl fixed w-full top-0 z-50 transition-all duration-300 border-b border-white/20">
+    <nav className="bg-white/95 backdrop-blur-xl shadow-lg fixed w-full top-0 z-50 transition-all duration-300 border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:scale-105 transition-transform duration-300">CovoitFacile</Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center space-x-2">
+              <FaCar className="text-2xl text-indigo-600" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                CovoitFacile
+              </span>
+            </Link>
+          </div>
+
+          {/* Navigation Desktop */}
+          <div className="hidden md:flex items-center space-x-8">
+            <Link
+              to="/"
+              className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Accueil
+            </Link>
+            <Link
+              to="/search"
+              className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Rechercher
+            </Link>
+
+            {isAuthenticated && (
+              <>
+                {(user?.role === 'conducteur' || user?.role === 'admin') && (
+                  <Link
+                    to="/create"
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Proposer un trajet
+                  </Link>
+                )}
+                {user?.role === 'admin' && (
+                  <Link
+                    to="/admin/dashboard"
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Actions Desktop */}
+          <div className="hidden md:flex items-center space-x-4">
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  onClick={toggleUserMenu}
+                  className="flex items-center space-x-2 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  <FaUser className="text-sm" />
+                  <span>{user?.prenom}</span>
+                  <FaChevronDown className="text-xs" />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    <Link
+                      to="/profile"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <FaUser className="mr-3" />
+                      Mon profil
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <FaSignOutAlt className="mr-3" />
+                      Déconnexion
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  Connexion
+                </Link>
+                <Link
+                  to="/register"
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-md text-sm font-medium hover:shadow-lg transition-all duration-300"
+                >
+                  S'inscrire
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Menu Mobile */}
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={toggleMenu}
+              className="text-gray-700 hover:text-indigo-600 p-2"
+            >
+              {isOpen ? <FaTimes /> : <FaBars />}
+            </button>
+          </div>
+        </div>
+
+        {/* Menu Mobile Ouvert */}
+        {isOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
               <Link
                 to="/"
-                className="border-transparent text-gray-600 hover:text-indigo-600 hover:border-indigo-500 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-all duration-300 ease-in-out hover:bg-indigo-50/50 rounded-t-lg"
+                className="block px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-base font-medium"
+                onClick={() => setIsOpen(false)}
               >
                 Accueil
               </Link>
               <Link
-                to="/create"
-                className="border-transparent text-gray-600 hover:text-indigo-600 hover:border-indigo-500 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-all duration-300 ease-in-out hover:bg-indigo-50/50 rounded-t-lg"
+                to="/search"
+                className="block px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-base font-medium"
+                onClick={() => setIsOpen(false)}
               >
-                Proposer un trajet
+                Rechercher
               </Link>
-              <Link
-                to="/faq"
-                className="border-transparent text-gray-600 hover:text-indigo-600 hover:border-indigo-500 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-all duration-300 ease-in-out hover:bg-indigo-50/50 rounded-t-lg"
-              >
-                FAQ
-              </Link>
-              <Link
-                to="/test"
-                className="border-transparent text-gray-600 hover:text-indigo-600 hover:border-indigo-500 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-all duration-300 ease-in-out hover:bg-indigo-50/50 rounded-t-lg"
-              >
-                test
-              </Link>
+
+              {isAuthenticated ? (
+                <>
+                  {(user?.role === 'conducteur' || user?.role === 'admin') && (
+                    <Link
+                      to="/create"
+                      className="block px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-base font-medium"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Proposer un trajet
+                    </Link>
+                  )}
+                  <Link
+                    to="/profile"
+                    className="block px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-base font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Mon profil
+                  </Link>
+                  {user?.role === 'admin' && (
+                    <Link
+                      to="/admin/dashboard"
+                      className="block px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-base font-medium"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsOpen(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-base font-medium"
+                  >
+                    Déconnexion
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="block px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-base font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Connexion
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="block px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-md text-base font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    S'inscrire
+                  </Link>
+                </>
+              )}
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
-            <Link
-              to="/login"
-              className="text-gray-600 hover:text-indigo-600 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ease-in-out hover:bg-indigo-50/50 hover:scale-105"
-            >
-              Connexion
-            </Link>
-            <Link
-              to="/register"
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-medium hover:shadow-lg transition-all duration-300 ease-in-out hover:shadow-indigo-500/25 hover:scale-105 hover:translate-y-[-2px]"
-            >
-              S'inscrire
-            </Link>
-          </div>
-        </div>
+        )}
       </div>
     </nav>
   );

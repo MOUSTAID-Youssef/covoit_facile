@@ -1,11 +1,23 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
 
 function Login() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = location.state?.from?.pathname || '/';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -13,12 +25,38 @@ function Login() {
       ...prevState,
       [name]: value
     }));
+    // Effacer l'erreur pour ce champ
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implémenter la logique de connexion
-    console.log('Données du formulaire:', formData);
+    setLoading(true);
+    setErrors({});
+    setSuccessMessage('');
+
+    try {
+      const result = await login(formData);
+
+      if (result.success) {
+        setSuccessMessage('Connexion réussie ! Redirection...');
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 1000);
+      } else {
+        setErrors(result.errors || { general: result.message });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la connexion:', error);
+      setErrors({ general: 'Erreur de connexion. Veuillez réessayer.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,6 +76,19 @@ function Login() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
         <div className="bg-white/90 py-8 px-6 shadow-2xl sm:rounded-2xl sm:px-12 backdrop-blur-xl border border-white/20">
+          {/* Messages de succès et d'erreur */}
+          {successMessage && (
+            <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+              {successMessage}
+            </div>
+          )}
+
+          {errors.general && (
+            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+              {errors.general}
+            </div>
+          )}
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -50,11 +101,17 @@ function Login() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
+                  className={`appearance-none block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
+                    errors.email ? 'border-red-300' : 'border-gray-200'
+                  }`}
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="votre@email.com"
+                  disabled={loading}
                 />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                )}
               </div>
             </div>
 
@@ -66,14 +123,31 @@ function Login() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
-                  className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
+                  className={`appearance-none block w-full px-4 py-3 pr-12 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
+                    errors.password ? 'border-red-300' : 'border-gray-200'
+                  }`}
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
+                  disabled={loading}
                 />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <FaEye className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                )}
               </div>
             </div>
 
@@ -100,9 +174,17 @@ function Login() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-[1.02]"
+                disabled={loading}
+                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                Se connecter
+                {loading ? (
+                  <>
+                    <FaSpinner className="animate-spin mr-2" />
+                    Connexion...
+                  </>
+                ) : (
+                  'Se connecter'
+                )}
               </button>
             </div>
           </form>

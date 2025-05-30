@@ -1,47 +1,87 @@
-import { motion } from 'framer-motion';
+import React from 'react';
+import { FaSearch, FaHandshake, FaCar, FaStar } from 'react-icons/fa';
 
-function HowItWorks() {
+const HowItWorks = () => {
   const steps = [
     {
-      id: 1,
-      icon: '🔍',
-      title: 'Recherchez',
-      description: 'Trouvez le trajet qui vous convient parmi nos nombreuses offres'
+      icon: FaSearch,
+      title: "Recherchez un trajet",
+      description: "Trouvez le trajet qui correspond à vos besoins parmi des milliers d'options disponibles.",
+      color: "bg-blue-500"
     },
     {
-      id: 2,
-      icon: '📱',
-      title: 'Réservez',
-      description: 'Réservez votre place en quelques clics'
+      icon: FaHandshake,
+      title: "Réservez votre place",
+      description: "Contactez le conducteur et réservez votre place en quelques clics seulement.",
+      color: "bg-green-500"
     },
     {
-      id: 3,
-      icon: '🚗',
-      title: 'Voyagez',
-      description: 'Profitez de votre trajet en toute sérénité'
+      icon: FaCar,
+      title: "Voyagez ensemble",
+      description: "Rencontrez votre conducteur au point de rendez-vous et profitez du voyage.",
+      color: "bg-purple-500"
+    },
+    {
+      icon: FaStar,
+      title: "Évaluez l'expérience",
+      description: "Laissez un avis pour aider la communauté et améliorer l'expérience de tous.",
+      color: "bg-orange-500"
     }
   ];
 
   return (
-    <div className="py-16">
+    <section className="py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-center mb-12">Comment ça marche ?</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {steps.map(step => (
-            <motion.div
-              key={step.id}
-              whileHover={{ scale: 1.05 }}
-              className="text-center p-6 rounded-lg shadow-lg bg-white"
-            >
-              <div className="text-4xl mb-4">{step.icon}</div>
-              <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-              <p className="text-gray-600">{step.description}</p>
-            </motion.div>
-          ))}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Comment ça marche ?
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Voyager en covoiturage n'a jamais été aussi simple. Suivez ces 4 étapes pour commencer votre aventure.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {steps.map((step, index) => {
+            const IconComponent = step.icon;
+            return (
+              <div key={index} className="text-center">
+                {/* Step Number */}
+                <div className="relative mb-6">
+                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${step.color} text-white shadow-lg`}>
+                    <IconComponent className="w-8 h-8" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md">
+                    <span className="text-sm font-bold text-gray-700">{index + 1}</span>
+                  </div>
+                </div>
+
+                {/* Step Content */}
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  {step.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {step.description}
+                </p>
+
+                {/* Connector Line (except for last item) */}
+                {index < steps.length - 1 && (
+                  <div className="hidden lg:block absolute top-8 left-1/2 w-full h-0.5 bg-gray-300 transform translate-x-8"></div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Call to Action */}
+        <div className="text-center mt-12">
+          <button className="bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-300 shadow-lg">
+            Commencer maintenant
+          </button>
         </div>
       </div>
-    </div>
+    </section>
   );
-}
+};
 
 export default HowItWorks;

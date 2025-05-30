@@ -1,74 +1,110 @@
-import { motion } from 'framer-motion';
+import React from 'react';
+import { FaStar, FaQuoteLeft } from 'react-icons/fa';
 
-function Testimonials() {
+const Testimonials = () => {
   const testimonials = [
     {
       id: 1,
-      name: 'Sarah B.',
-      avatar: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiM2MzY2ZjEiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjMwIiByPSIxNSIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0xNSA2NWMwLTE1IDE1LTI1IDI1LTI1czI1IDEwIDI1IDI1IiBmaWxsPSIjZmZmIi8+PC9zdmc+',
-      rating: '★★★★★',
-      text: 'Une expérience incroyable ! J\'ai fait de belles rencontres et économisé sur mes trajets. Je recommande vivement !',
-      borderColor: 'border-indigo-100'
+      name: "Ahmed Benali",
+      role: "Conducteur régulier",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+      rating: 5,
+      comment: "CovoitFacile m'a permis de rencontrer des personnes formidables tout en réduisant mes frais de transport. L'application est très intuitive et sécurisée."
     },
     {
       id: 2,
-      name: 'Karim M.',
-      avatar: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiM4YjVjZjYiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjMwIiByPSIxNSIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0xNSA2NWMwLTE1IDE1LTI1IDI1LTI1czI1IDEwIDI1IDI1IiBmaWxsPSIjZmZmIi8+PC9zdmc+',
-      rating: '★★★★★',
-      text: 'Excellent service ! Les conducteurs sont ponctuels et sympathiques. Je l\'utilise régulièrement pour mes déplacements.',
-      borderColor: 'border-purple-100'
+      name: "Fatima Zahra",
+      role: "Voyageuse fréquente",
+      avatar: "https://images.unsplash.com/photo-1747995709691-5d0cf015c991?q=80&w=1964&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      rating: 5,
+      comment: "Grâce à CovoitFacile, je voyage de Casablanca à Rabat chaque semaine pour le travail. C'est économique, écologique et convivial !"
     },
     {
       id: 3,
-      name: 'Fatima L.',
-      avatar: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiM4MThlZjciLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjMwIiByPSIxNSIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0xNSA2NWMwLTE1IDE1LTI1IDI1LTI1czI1IDEwIDI1IDI1IiBmaWxsPSIjZmZmIi8+PC9zdmc+',
-      rating: '★★★★★',
-      text: 'Une super alternative pour voyager à petit prix. L\'application est très facile à utiliser !',
-      borderColor: 'border-indigo-100'
+      name: "Omar Tazi",
+      role: "Étudiant",
+      avatar: "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+      rating: 5,
+      comment: "En tant qu'étudiant, CovoitFacile me permet de voyager à petit prix. Les conducteurs sont sympas et l'expérience est toujours agréable."
     }
   ];
 
+  const renderStars = (rating) => {
+    return Array.from({ length: 5 }, (_, index) => (
+      <FaStar
+        key={index}
+        className={`w-4 h-4 ${
+          index < rating ? 'text-yellow-400' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
   return (
-    <div className="py-16 bg-gradient-to-br from-indigo-50 to-purple-50">
+    <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Ce que disent nos voyageurs</h2>
-        <div className="relative">
-          <div className="flex overflow-x-hidden snap-x snap-mandatory gap-6 pb-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={testimonial.id}
-                className="snap-center shrink-0 w-full md:w-[340px] bg-white rounded-2xl shadow-xl p-6 flex flex-col items-center space-y-4"
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.2 }}
-              >
-                <div className={`w-20 h-20 rounded-full overflow-hidden border-4 ${testimonial.borderColor}`}>
-                  <img src={testimonial.avatar} alt={testimonial.name} className="w-full h-full object-cover" />
-                </div>
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Ce que disent nos utilisateurs
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Découvrez les témoignages de notre communauté de voyageurs satisfaits
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {testimonials.map((testimonial) => (
+            <div
+              key={testimonial.id}
+              className="bg-gray-50 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-300"
+            >
+              {/* Quote Icon */}
+              <div className="flex justify-center mb-4">
+                <FaQuoteLeft className="w-8 h-8 text-indigo-600 opacity-50" />
+              </div>
+
+              {/* Rating */}
+              <div className="flex justify-center mb-4">
+                {renderStars(testimonial.rating)}
+              </div>
+
+              {/* Comment */}
+              <p className="text-gray-700 text-center mb-6 leading-relaxed">
+                "{testimonial.comment}"
+              </p>
+
+              {/* User Info */}
+              <div className="flex items-center justify-center">
+                <img
+                  src={testimonial.avatar}
+                  alt={testimonial.name}
+                  className="w-12 h-12 rounded-full mr-4 object-cover"
+                />
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold text-gray-800">{testimonial.name}</h3>
-                  <p className="text-indigo-600 font-medium">{testimonial.rating}</p>
+                  <h4 className="font-semibold text-gray-900">
+                    {testimonial.name}
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    {testimonial.role}
+                  </p>
                 </div>
-                <p className="text-gray-600 text-center italic">{testimonial.text}</p>
-              </motion.div>
-            ))}
-          </div>
-          <div className="absolute top-1/2 -translate-y-1/2 flex justify-between w-full px-4 z-10">
-            <button className="p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white transition-all duration-200 hover:scale-110">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button className="p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white transition-all duration-200 hover:scale-110">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Call to Action */}
+        <div className="text-center mt-12">
+          <p className="text-gray-600 mb-4">
+            Rejoignez des milliers d'utilisateurs satisfaits
+          </p>
+          <button className="bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-300 shadow-lg">
+            Créer mon compte
+          </button>
         </div>
       </div>
-    </div>
+    </section>
   );
-}
+};
 
 export default Testimonials;

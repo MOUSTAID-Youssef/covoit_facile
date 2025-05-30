@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import TripCard from '../components/TripCard';
+import TripListSimple from '../components/TripListSimple';
 
 function Search() {
   const [searchParams, setSearchParams] = useState({
@@ -47,7 +48,7 @@ function Search() {
         <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-800">Rechercher un trajet</span>
         </h2>
-        
+
         <form onSubmit={handleSearch} className="bg-white shadow-xl rounded-2xl px-8 pt-8 pb-8 mb-8 transform transition-all duration-300 hover:shadow-2xl">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             <div className="relative">
@@ -70,7 +71,7 @@ function Search() {
                 ))}
               </select>
             </div>
-            
+
             <div className="relative">
               <label className="block text-gray-700 text-sm font-semibold mb-3 flex items-center" htmlFor="destination">
                 <svg className="h-4 w-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,7 +92,7 @@ function Search() {
                 ))}
               </select>
             </div>
-            
+
             <div className="relative">
               <label className="block text-gray-700 text-sm font-semibold mb-3 flex items-center" htmlFor="date">
                 <svg className="h-4 w-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,7 +109,7 @@ function Search() {
               />
             </div>
           </div>
-          
+
           <div className="flex items-center justify-center mt-8">
             <button
               className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3 px-8 rounded-lg transform transition duration-200 hover:translate-y-[-2px] hover:shadow-lg active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -119,11 +120,8 @@ function Search() {
           </div>
         </form>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {trips.map(trip => (
-            <TripCard key={trip.id} trip={trip} />
-          ))}
-        </div>
+        {/* Liste des trajets dynamique */}
+        <TripListSimple />
       </div>
     </div>
   );

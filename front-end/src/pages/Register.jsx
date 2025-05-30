@@ -1,48 +1,105 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaCamera } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { FaCamera, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
 
 function Register() {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    birthDate: '',
+    prenom: '',
+    nom: '',
     email: '',
-    phoneNumber: '',
     password: '',
-    confirmPassword: '',
-    profilePicture: null
+    password_confirmation: '',
+    genre: '',
+    date_naissance: '',
+    role: 'voyageur'
   });
 
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value, type, files } = e.target;
-    if (type === 'file') {
-      const file = files[0];
-      if (file) {
-        setFormData(prevState => ({
-          ...prevState,
-          profilePicture: file
-        }));
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPreviewUrl(reader.result);
-        };
-        reader.readAsDataURL(file);
-      }
-    } else {
-      setFormData(prevState => ({
-        ...prevState,
-        [name]: value
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+    // Effacer l'erreur pour ce champ
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: null
       }));
     }
   };
 
-  const handleSubmit = (e) => {
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.prenom.trim()) {
+      newErrors.prenom = 'Le prénom est requis';
+    }
+
+    if (!formData.nom.trim()) {
+      newErrors.nom = 'Le nom est requis';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'L\'email est requis';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Format d\'email invalide';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Le mot de passe est requis';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+    }
+
+    if (formData.password !== formData.password_confirmation) {
+      newErrors.password_confirmation = 'Les mots de passe ne correspondent pas';
+    }
+
+    return newErrors;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implémenter la logique d'inscription
-    console.log('Données du formulaire:', formData);
+    setLoading(true);
+    setErrors({});
+    setSuccessMessage('');
+
+    // Validation côté client
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await register(formData);
+
+      if (result.success) {
+        setSuccessMessage('Inscription réussie ! Redirection...');
+        setTimeout(() => {
+          navigate('/');
+        }, 1000);
+      } else {
+        setErrors(result.errors || { general: result.message });
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'inscription:', error);
+      setErrors({ general: 'Erreur d\'inscription. Veuillez réessayer.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,79 +119,66 @@ function Register() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
         <div className="bg-white/90 py-8 px-6 shadow-2xl sm:rounded-2xl sm:px-12 backdrop-blur-xl border border-white/20">
+          {/* Messages de succès et d'erreur */}
+          {successMessage && (
+            <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+              {successMessage}
+            </div>
+          )}
+
+          {errors.general && (
+            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+              {errors.general}
+            </div>
+          )}
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="flex gap-4">
               <div className="flex-1">
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  Prénom
+                <label htmlFor="prenom" className="block text-sm font-medium text-gray-700">
+                  Prénom *
                 </label>
                 <div className="mt-1">
                   <input
-                    id="firstName"
-                    name="firstName"
+                    id="prenom"
+                    name="prenom"
                     type="text"
                     required
                     placeholder="Votre prénom"
-                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
-                    value={formData.firstName}
+                    className={`appearance-none block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
+                      errors.prenom ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    value={formData.prenom}
                     onChange={handleChange}
+                    disabled={loading}
                   />
+                  {errors.prenom && (
+                    <p className="mt-1 text-sm text-red-600">{errors.prenom}</p>
+                  )}
                 </div>
               </div>
 
               <div className="flex-1">
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Nom
+                <label htmlFor="nom" className="block text-sm font-medium text-gray-700">
+                  Nom *
                 </label>
                 <div className="mt-1">
                   <input
-                    id="lastName"
-                    name="lastName"
+                    id="nom"
+                    name="nom"
                     type="text"
                     required
                     placeholder="Votre nom"
-                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
-                    value={formData.lastName}
+                    className={`appearance-none block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
+                      errors.nom ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    value={formData.nom}
                     onChange={handleChange}
+                    disabled={loading}
                   />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">
-                  Date de naissance
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="birthDate"
-                    name="birthDate"
-                    type="date"
-                    required
-                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
-                    value={formData.birthDate}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
-                  Numéro de téléphone
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="phoneNumber"
-                    name="phoneNumber"
-                    type="tel"
-                    pattern="(\+212|0)[5-7][0-9]{8}"
-                    required
-                    placeholder="Votre Numéro"
-                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
-                  />
+                  {errors.nom && (
+                    <p className="mt-1 text-sm text-red-600">{errors.nom}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -142,7 +186,7 @@ function Register() {
             <div className="flex gap-4">
               <div className="flex-1">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Adresse email
+                  Adresse email *
                 </label>
                 <div className="mt-1">
                   <input
@@ -152,84 +196,164 @@ function Register() {
                     autoComplete="email"
                     required
                     placeholder="votre@email.com"
-                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
+                    className={`appearance-none block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
+                      errors.email ? 'border-red-300' : 'border-gray-200'
+                    }`}
                     value={formData.email}
                     onChange={handleChange}
+                    disabled={loading}
                   />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  )}
                 </div>
+              </div>
+
+              <div className="flex-1">
+                <label htmlFor="genre" className="block text-sm font-medium text-gray-700">
+                  Genre
+                </label>
+                <div className="mt-1">
+                  <select
+                    id="genre"
+                    name="genre"
+                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
+                    value={formData.genre}
+                    onChange={handleChange}
+                    disabled={loading}
+                  >
+                    <option value="">Sélectionner</option>
+                    <option value="homme">Homme</option>
+                    <option value="femme">Femme</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="date_naissance" className="block text-sm font-medium text-gray-700">
+                Date de naissance
+              </label>
+              <div className="mt-1">
+                <input
+                  id="date_naissance"
+                  name="date_naissance"
+                  type="date"
+                  className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
+                  value={formData.date_naissance}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
               </div>
             </div>
 
             <div className="flex gap-4">
               <div className="flex-1">
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Mot de passe
+                  Mot de passe *
                 </label>
-                <div className="mt-1">
+                <div className="mt-1 relative">
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete="new-password"
                     required
                     placeholder="••••••••"
-                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
+                    className={`appearance-none block w-full px-4 py-3 pr-12 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
+                      errors.password ? 'border-red-300' : 'border-gray-200'
+                    }`}
                     value={formData.password}
                     onChange={handleChange}
+                    disabled={loading}
                   />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <FaEye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  )}
                 </div>
               </div>
 
               <div className="flex-1">
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirmer le mot de passe
+                <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">
+                  Confirmer le mot de passe *
                 </label>
-                <div className="mt-1">
+                <div className="mt-1 relative">
                   <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
+                    id="password_confirmation"
+                    name="password_confirmation"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     autoComplete="new-password"
                     required
                     placeholder="••••••••"
-                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
-                    value={formData.confirmPassword}
+                    className={`appearance-none block w-full px-4 py-3 pr-12 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
+                      errors.password_confirmation ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    value={formData.password_confirmation}
                     onChange={handleChange}
+                    disabled={loading}
                   />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <FaEye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                  {errors.password_confirmation && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password_confirmation}</p>
+                  )}
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Photo de profil
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                Je souhaite être
               </label>
-              <div className="flex items-center justify-center">
-                <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 hover:border-indigo-500 transition-colors duration-300">
-                  {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                      <FaCamera size={24} />
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    name="profilePicture"
-                    accept="image/*"
-                    onChange={handleChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                </div>
+              <div className="mt-1">
+                <select
+                  id="role"
+                  name="role"
+                  className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80"
+                  value={formData.role}
+                  onChange={handleChange}
+                  disabled={loading}
+                >
+                  <option value="voyageur">Voyageur</option>
+                  <option value="conducteur">Conducteur</option>
+                </select>
               </div>
             </div>
 
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-[1.02]"
+                disabled={loading}
+                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                S'inscrire
+                {loading ? (
+                  <>
+                    <FaSpinner className="animate-spin mr-2" />
+                    Inscription...
+                  </>
+                ) : (
+                  'S\'inscrire'
+                )}
               </button>
             </div>
           </form>
