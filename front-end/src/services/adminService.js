@@ -259,6 +259,81 @@ class AdminService {
       };
     }
   }
+  // Supprimer un utilisateur
+  async deleteUser(userId) {
+    try {
+      console.log('🗑️ Suppression utilisateur:', userId);
+      const response = await apiClient.delete(`/admin/users/${userId}`);
+      console.log('✅ Utilisateur supprimé:', response.data);
+      return {
+        success: true,
+        message: response.data.message || 'Utilisateur supprimé avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la suppression:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de la suppression'
+      };
+    }
+  }
+
+  // Supprimer un trajet
+  async deleteTrip(tripId) {
+    try {
+      console.log('🗑️ Suppression trajet:', tripId);
+      const response = await apiClient.delete(`/admin/trips/${tripId}`);
+      console.log('✅ Trajet supprimé:', response.data);
+      return {
+        success: true,
+        message: response.data.message || 'Trajet supprimé avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la suppression du trajet:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de la suppression du trajet'
+      };
+    }
+  }
+
+  // Annuler un trajet
+  async cancelTrip(tripId) {
+    try {
+      console.log('❌ Annulation trajet:', tripId);
+      const response = await apiClient.put(`/admin/trips/${tripId}/cancel`);
+      console.log('✅ Trajet annulé:', response.data);
+      return {
+        success: true,
+        message: response.data.message || 'Trajet annulé avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'annulation du trajet:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de l\'annulation du trajet'
+      };
+    }
+  }
+
+  // Réactiver un trajet
+  async reactivateTrip(tripId) {
+    try {
+      console.log('🔄 Réactivation trajet:', tripId);
+      const response = await apiClient.put(`/admin/trips/${tripId}/reactivate`);
+      console.log('✅ Trajet réactivé:', response.data);
+      return {
+        success: true,
+        message: response.data.message || 'Trajet réactivé avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la réactivation du trajet:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de la réactivation du trajet'
+      };
+    }
+  }
 }
 
 export default new AdminService();

@@ -18,24 +18,34 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAuthStatus();
+
+    // Pas de vérification périodique pour éviter les déconnexions automatiques
+    // L'utilisateur reste connecté en permanence
   }, []);
 
   const checkAuthStatus = async () => {
     try {
+      console.log('🔍 Vérification du statut d\'authentification...');
+
       if (authService.isAuthenticated()) {
         const currentUser = authService.getCurrentUser();
+        console.log('👤 Utilisateur trouvé dans localStorage:', currentUser?.email);
+
         setUser(currentUser);
         setIsAuthenticated(true);
 
-        // Rafraîchir les données utilisateur depuis l'API
-        const refreshedUser = await authService.refreshUser();
-        if (refreshedUser) {
-          setUser(refreshedUser);
-        }
+        // Pas de validation du token pour éviter les déconnexions automatiques
+        // L'utilisateur reste connecté tant que les données sont présentes
+        console.log('✅ Utilisateur authentifié - connexion permanente');
+      } else {
+        console.log('❌ Aucune authentification trouvée');
+        setUser(null);
+        setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Erreur lors de la vérification de l\'authentification:', error);
-      logout();
+      console.error('❌ Erreur lors de la vérification de l\'authentification:', error);
+      // Ne pas déconnecter automatiquement en cas d'erreur
+      console.log('⚠️ Erreur ignorée pour maintenir la connexion');
     } finally {
       setLoading(false);
     }

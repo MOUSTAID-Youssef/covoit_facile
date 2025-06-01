@@ -8,6 +8,7 @@ function Login() {
     email: '',
     password: ''
   });
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -41,10 +42,20 @@ function Login() {
     setSuccessMessage('');
 
     try {
-      const result = await login(formData);
+      const result = await login({
+        ...formData,
+        remember: rememberMe
+      });
 
       if (result.success) {
         setSuccessMessage('Connexion réussie ! Redirection...');
+
+        // Si "Se souvenir de moi" est coché, sauvegarder une préférence
+        if (rememberMe) {
+          localStorage.setItem('remember_user', 'true');
+          console.log('💾 Préférence "Se souvenir de moi" sauvegardée');
+        }
+
         setTimeout(() => {
           navigate(from, { replace: true });
         }, 1000);
@@ -157,10 +168,12 @@ function Login() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded transition-colors duration-200"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Se souvenir de moi
+                  Se souvenir de moi (7 jours)
                 </label>
               </div>
 

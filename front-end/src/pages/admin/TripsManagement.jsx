@@ -276,7 +276,6 @@ const TripsManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm text-gray-900 flex items-center">
-                        <FaEuroSign className="mr-1" />
                         {trip.prix} MAD
                       </div>
                       <div className="text-sm text-gray-500 flex items-center">

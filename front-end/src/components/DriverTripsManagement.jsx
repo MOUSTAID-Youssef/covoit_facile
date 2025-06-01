@@ -8,7 +8,7 @@ const DriverTripsManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
-  const [expandedTrip, setExpandedTrip] = useState(null);
+
   const [editingTrip, setEditingTrip] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -122,9 +122,7 @@ const DriverTripsManagement = () => {
     }
   };
 
-  const toggleTripExpansion = (tripId) => {
-    setExpandedTrip(expandedTrip === tripId ? null : tripId);
-  };
+
 
   const handleEditTrip = (trip) => {
     setEditingTrip(trip);
@@ -146,16 +144,32 @@ const DriverTripsManagement = () => {
     setEditingTrip(null);
   };
 
-  const getStatusBadge = (statut) => {
+  const getStatusBadge = (statut, trip) => {
+    // Vérifier si le trajet est expiré
+    const tripDate = new Date(trip.date_depart);
+    const now = new Date();
+
+    if (tripDate < now) {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+          Expiré
+        </span>
+      );
+    }
+
     const badges = {
       'en_attente': 'bg-yellow-100 text-yellow-800',
+      'accepte': 'bg-green-100 text-green-800',
       'confirmee': 'bg-green-100 text-green-800',
+      'refuse': 'bg-red-100 text-red-800',
       'annulee': 'bg-red-100 text-red-800'
     };
 
     const labels = {
       'en_attente': 'En attente',
-      'confirmee': 'Confirmée',
+      'accepte': 'Acceptée',
+      'confirmee': 'Acceptée',
+      'refuse': 'Refusée',
       'annulee': 'Annulée'
     };
 
@@ -164,6 +178,44 @@ const DriverTripsManagement = () => {
         {labels[statut] || statut}
       </span>
     );
+  };
+
+  const getUserPhotoUrl = (photoPath) => {
+    if (!photoPath) return '/images/default-avatar.svg';
+    if (photoPath.startsWith('http')) return photoPath;
+    if (photoPath.startsWith('/')) return photoPath;
+    return `http://localhost:8000/storage/${photoPath}`;
+  };
+
+  // Fonctions de formatage des dates et heures
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Date non définie';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return 'Date invalide';
+    }
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return 'Heure non définie';
+    try {
+      return timeString.substring(0, 5); // Format HH:MM
+    } catch (error) {
+      return 'Heure invalide';
+    }
+  };
+
+  const formatDateTime = (dateString, timeString) => {
+    const formattedDate = formatDate(dateString);
+    const formattedTime = formatTime(timeString);
+    return `${formattedDate} à ${formattedTime}`;
   };
 
   if (loading) {
@@ -252,30 +304,40 @@ const DriverTripsManagement = () => {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                      <div className="flex items-center space-x-2">
-                        <FaCalendarAlt className="text-indigo-500" />
-                        <span>{trip.date_depart} à {trip.heure_depart}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <FaCalendarAlt className="text-blue-500" />
+                          <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">Date & Heure</span>
+                        </div>
+                        <div className="text-sm font-semibold text-blue-900">
+                          {formatDateTime(trip.date_depart, trip.heure_depart)}
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <FaUsers className="text-indigo-500" />
-                        <span>{trip.places_disponibles}/{trip.places_totales} places</span>
+
+                      <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <FaUsers className="text-green-500" />
+                          <span className="text-xs font-medium text-green-600 uppercase tracking-wide">Places</span>
+                        </div>
+                        <div className="text-sm font-semibold text-green-900">
+                          {trip.places_disponibles}/{trip.places_totales} disponibles
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                    </div>
+
+                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                      <div className="flex items-center space-x-2 mb-1">
                         <FaUsers className="text-orange-500" />
-                        <span>{trip.reservations?.length || 0} réservation{(trip.reservations?.length || 0) > 1 ? 's' : ''}</span>
+                        <span className="text-xs font-medium text-orange-600 uppercase tracking-wide">Réservations</span>
+                      </div>
+                      <div className="text-sm font-semibold text-orange-900">
+                        {trip.reservations?.length || 0} réservation{(trip.reservations?.length || 0) > 1 ? 's' : ''}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => toggleTripExpansion(trip.id)}
-                      className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-1"
-                    >
-                      <FaEye />
-                      <span>Réservations</span>
-                    </button>
                     <button
                       onClick={() => handleEditTrip(trip)}
                       className="bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 transition-colors"
@@ -293,33 +355,64 @@ const DriverTripsManagement = () => {
                 </div>
               </div>
 
-              {/* Réservations (expandable) */}
-              {expandedTrip === trip.id && (
-                <div className="border-t border-gray-200 bg-gray-50 p-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                    Réservations ({trip.reservations?.length || 0})
-                  </h4>
+              {/* Réservations (toujours visibles) */}
+              <div className="border-t border-gray-200 bg-gray-50 p-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                  Réservations ({trip.reservations?.length || 0})
+                </h4>
 
-                  {!trip.reservations || trip.reservations.length === 0 ? (
-                    <p className="text-gray-600 text-center py-4">Aucune réservation pour ce trajet</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {trip.reservations.map(reservation => (
+                {!trip.reservations || trip.reservations.length === 0 ? (
+                  <p className="text-gray-600 text-center py-4">Aucune réservation pour ce trajet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {trip.reservations.map(reservation => {
+                      const tripDate = new Date(trip.date_depart);
+                      const now = new Date();
+                      const isExpired = tripDate < now;
+
+                      return (
                         <div key={reservation.id} className="bg-white rounded-lg p-4 border border-gray-200">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                               <img
-                                src={reservation.voyageur?.photo_url || '/images/default-avatar.svg'}
+                                src={getUserPhotoUrl(reservation.voyageur?.photo_profil || reservation.voyageur?.photo_url)}
                                 alt={`${reservation.voyageur?.prenom} ${reservation.voyageur?.nom}`}
-                                className="w-10 h-10 rounded-full border border-gray-200"
+                                className="w-12 h-12 rounded-full border-2 border-gray-200 object-cover"
+                                onError={(e) => {
+                                  e.target.src = '/images/default-avatar.svg';
+                                }}
                               />
-                              <div>
+                              <div className="flex-1">
                                 <div className="font-medium text-gray-900">
                                   {reservation.voyageur?.prenom} {reservation.voyageur?.nom}
                                 </div>
                                 <div className="text-sm text-gray-600">
                                   {reservation.nombre_places} place{reservation.nombre_places > 1 ? 's' : ''}
                                 </div>
+                                {reservation.voyageur?.telephone && (
+                                  <div className="mt-1 flex items-center space-x-1">
+                                    <span className="text-green-500">📞</span>
+                                    <a
+                                      href={`tel:${reservation.voyageur.telephone}`}
+                                      className="text-green-600 hover:text-green-800 font-medium text-xs"
+                                      title={`Appeler ${reservation.voyageur.prenom}`}
+                                    >
+                                      {reservation.voyageur.telephone}
+                                    </a>
+                                  </div>
+                                )}
+                                {reservation.voyageur?.email && (
+                                  <div className="mt-1 flex items-center space-x-1">
+                                    <span className="text-blue-500">✉️</span>
+                                    <a
+                                      href={`mailto:${reservation.voyageur.email}`}
+                                      className="text-blue-600 hover:text-blue-800 font-medium text-xs"
+                                      title={`Envoyer un email à ${reservation.voyageur.prenom}`}
+                                    >
+                                      {reservation.voyageur.email}
+                                    </a>
+                                  </div>
+                                )}
                                 {reservation.message && (
                                   <div className="text-sm text-gray-500 mt-1">
                                     "{reservation.message}"
@@ -329,9 +422,9 @@ const DriverTripsManagement = () => {
                             </div>
 
                             <div className="flex items-center space-x-3">
-                              {getStatusBadge(reservation.statut)}
+                              {getStatusBadge(reservation.statut, trip)}
 
-                              {reservation.statut === 'en_attente' && (
+                              {reservation.statut === 'en_attente' && !isExpired && (
                                 <div className="flex space-x-2">
                                   <button
                                     onClick={() => handleAcceptReservation(reservation.id)}
@@ -352,11 +445,11 @@ const DriverTripsManagement = () => {
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>

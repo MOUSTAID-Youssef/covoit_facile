@@ -292,7 +292,6 @@ const ReservationsManagement = () => {
                         {reservation.nombre_places} place(s)
                       </div>
                       <div className="text-sm text-gray-500 flex items-center">
-                        <FaEuroSign className="mr-1" />
                         {(reservation.trajet?.prix * reservation.nombre_places || 0).toLocaleString()} MAD
                       </div>
                     </div>

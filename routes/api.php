@@ -133,6 +133,7 @@ Route::get('/trips', function () {
                     'id' => $trip->conducteur->id,
                     'prenom' => $trip->conducteur->prenom,
                     'nom' => $trip->conducteur->nom,
+                    'telephone' => $trip->conducteur->telephone,
                     'photo_url' => $trip->conducteur->photo_url ?? asset('images/default-avatar.svg'),
                     'badge_verifie' => $trip->conducteur->badge_verifie,
                 ] : null,
@@ -186,10 +187,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'nom' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'genre' => 'nullable|in:homme,femme',
+            'telephone' => ['nullable', 'string', function ($attribute, $value, $fail) {
+                if ($value && !preg_match('/^(\+212|0)[5-7][0-9]{8}$/', $value)) {
+                    $fail('Le format du numéro de téléphone est invalide. Utilisez le format marocain : +212XXXXXXXXX ou 0XXXXXXXXX');
+                }
+            }],
             'date_naissance' => 'nullable|date',
         ]);
 
-        $user->update($request->only(['prenom', 'nom', 'email', 'genre', 'date_naissance']));
+        $user->update($request->only(['prenom', 'nom', 'email', 'genre', 'telephone', 'date_naissance']));
 
         $updatedUser = $user->fresh();
         $updatedUser->photo_url = $updatedUser->photo_url; // Déclenche l'accesseur
@@ -287,6 +293,202 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
 
+    // Upload de CIN (identité)
+    Route::post('/profile/identity', function (Request $request) {
+        $user = $request->user();
+
+        $request->validate([
+            'cin' => 'required|file|mimes:pdf,jpeg,jpg,png|max:5120', // 5MB max
+        ]);
+
+        try {
+            // Supprimer l'ancien document si il existe
+            if ($user->cin_path && Storage::disk('public')->exists($user->cin_path)) {
+                Storage::disk('public')->delete($user->cin_path);
+            }
+
+            // Stocker le nouveau document
+            $file = $request->file('cin');
+            $filename = 'cin_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('identity-documents', $filename, 'public');
+
+            // Mettre à jour l'utilisateur
+            $user->update([
+                'cin_path' => $path,
+                'badge_verifie' => false // Remettre en attente de vérification
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $user->fresh(),
+                'message' => 'Document CIN téléchargé avec succès'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'upload: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Mettre à jour le téléphone
+    Route::put('/profile/phone', function (Request $request) {
+        $user = $request->user();
+
+        $request->validate([
+            'telephone' => ['required', 'string', function ($attribute, $value, $fail) {
+                if (!preg_match('/^(\+212|0)[5-7][0-9]{8}$/', $value)) {
+                    $fail('Le format du numéro de téléphone est invalide. Utilisez le format marocain : +212XXXXXXXXX ou 0XXXXXXXXX');
+                }
+            }],
+        ]);
+
+        $user->update([
+            'telephone' => $request->telephone
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $user->fresh(),
+            'message' => 'Numéro de téléphone mis à jour avec succès'
+        ]);
+    });
+
+    // ==================== GESTION DES VÉHICULES ====================
+
+    // Obtenir le véhicule du conducteur connecté
+    Route::get('/profile/vehicle', function (Request $request) {
+        $user = $request->user();
+
+        if ($user->role !== 'conducteur') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seuls les conducteurs peuvent avoir des véhicules'
+            ], 403);
+        }
+
+        $vehicle = \App\Models\Vehicule::where('user_id', $user->id)->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $vehicle,
+            'message' => $vehicle ? 'Véhicule trouvé' : 'Aucun véhicule enregistré'
+        ]);
+    });
+
+    // Ajouter un véhicule
+    Route::post('/profile/vehicle', function (Request $request) {
+        $user = $request->user();
+
+        if ($user->role !== 'conducteur') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seuls les conducteurs peuvent ajouter des véhicules'
+            ], 403);
+        }
+
+        // Vérifier qu'il n'a pas déjà un véhicule
+        $existingVehicle = \App\Models\Vehicule::where('user_id', $user->id)->first();
+        if ($existingVehicle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous avez déjà un véhicule enregistré. Vous pouvez le modifier ou le supprimer.'
+            ], 400);
+        }
+
+        $request->validate([
+            'marque' => 'required|string|max:255',
+            'modele' => 'required|string|max:255',
+            'couleur' => 'required|string|max:255',
+            'annee' => 'required|integer|min:1990|max:' . (date('Y') + 1),
+            'nombre_places' => 'required|integer|min:2|max:8',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $vehicle = \App\Models\Vehicule::create([
+            'user_id' => $user->id,
+            'marque' => $request->marque,
+            'modele' => $request->modele,
+            'couleur' => $request->couleur,
+            'annee' => $request->annee,
+            'nombre_places' => $request->nombre_places,
+            'description' => $request->description,
+            'statut' => 'en_attente', // En attente de vérification
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $vehicle,
+            'message' => 'Véhicule ajouté avec succès'
+        ], 201);
+    });
+
+    // Modifier un véhicule
+    Route::put('/profile/vehicle', function (Request $request) {
+        $user = $request->user();
+
+        if ($user->role !== 'conducteur') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seuls les conducteurs peuvent modifier des véhicules'
+            ], 403);
+        }
+
+        $vehicle = \App\Models\Vehicule::where('user_id', $user->id)->first();
+        if (!$vehicle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun véhicule trouvé'
+            ], 404);
+        }
+
+        $request->validate([
+            'marque' => 'sometimes|string|max:255',
+            'modele' => 'sometimes|string|max:255',
+            'couleur' => 'sometimes|string|max:255',
+            'annee' => 'sometimes|integer|min:1990|max:' . (date('Y') + 1),
+            'nombre_places' => 'sometimes|integer|min:2|max:8',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $vehicle->update($request->only([
+            'marque', 'modele', 'couleur', 'annee', 'nombre_places', 'description'
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'data' => $vehicle->fresh(),
+            'message' => 'Véhicule mis à jour avec succès'
+        ]);
+    });
+
+    // Supprimer un véhicule
+    Route::delete('/profile/vehicle', function (Request $request) {
+        $user = $request->user();
+
+        if ($user->role !== 'conducteur') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seuls les conducteurs peuvent supprimer des véhicules'
+            ], 403);
+        }
+
+        $vehicle = \App\Models\Vehicule::where('user_id', $user->id)->first();
+        if (!$vehicle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun véhicule trouvé'
+            ], 404);
+        }
+
+        $vehicle->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Véhicule supprimé avec succès'
+        ]);
+    });
+
     // Routes pour les trajets (conducteurs)
     Route::post('/trips', function (Request $request) {
         $user = $request->user();
@@ -297,6 +499,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'success' => false,
                 'message' => 'Seuls les conducteurs peuvent créer des trajets'
             ], 403);
+        }
+
+        // Vérifier que le conducteur a un véhicule
+        $vehicle = \App\Models\Vehicule::where('user_id', $user->id)->first();
+        if (!$vehicle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous devez ajouter un véhicule avant de pouvoir créer des trajets'
+            ], 400);
         }
 
         $request->validate([
@@ -462,8 +673,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'statut' => 'en_attente',
         ]);
 
-        // Mettre à jour les places disponibles
-        $trajet->decrement('places_disponibles', $request->nombre_places);
+        // Ne pas décrémenter les places immédiatement
+        // Les places seront décrementées seulement quand le conducteur accepte la réservation
 
         return response()->json([
             'success' => true,
@@ -506,9 +717,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 403);
         }
 
-        // Remettre les places disponibles
+        // Remettre les places disponibles seulement si la réservation était confirmée
         $trajet = $reservation->trajet;
-        $trajet->increment('places_disponibles', $reservation->nombre_places);
+        if ($reservation->statut === 'confirmee') {
+            $trajet->increment('places_disponibles', $reservation->nombre_places);
+        }
 
         // Supprimer la réservation
         $reservation->delete();
@@ -708,6 +921,40 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ]);
         });
 
+        // Annuler un trajet (changer le statut)
+        Route::put('/trips/{id}/cancel', function (Request $request, $id) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $trip = \App\Models\Trajet::findOrFail($id);
+            $trip->update(['statut' => 'annule']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Trajet annulé avec succès'
+            ]);
+        });
+
+        // Réactiver un trajet annulé
+        Route::put('/trips/{id}/reactivate', function (Request $request, $id) {
+            $user = $request->user();
+
+            if ($user->role !== 'admin') {
+                return response()->json(['message' => 'Accès non autorisé'], 403);
+            }
+
+            $trip = \App\Models\Trajet::findOrFail($id);
+            $trip->update(['statut' => 'actif']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Trajet réactivé avec succès'
+            ]);
+        });
+
         Route::delete('/trips/{id}', function (Request $request, $id) {
             $user = $request->user();
 
@@ -799,7 +1046,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             'prenom' => $reservation->voyageur->prenom,
                             'nom' => $reservation->voyageur->nom,
                             'email' => $reservation->voyageur->email,
-                            'photo_url' => $reservation->voyageur->photo_url
+                            'telephone' => $reservation->voyageur->telephone,
+                            'photo_profil' => $reservation->voyageur->photo_profil
                         ],
                         'trajet' => [
                             'id' => $reservation->trajet->id,
@@ -809,8 +1057,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             'heure_depart' => $reservation->trajet->heure_depart,
                             'prix' => $reservation->trajet->prix,
                             'conducteur' => [
+                                'id' => $reservation->trajet->conducteur->id,
                                 'prenom' => $reservation->trajet->conducteur->prenom,
-                                'nom' => $reservation->trajet->conducteur->nom
+                                'nom' => $reservation->trajet->conducteur->nom,
+                                'email' => $reservation->trajet->conducteur->email,
+                                'telephone' => $reservation->trajet->conducteur->telephone,
+                                'photo_profil' => $reservation->trajet->conducteur->photo_profil
                             ]
                         ]
                     ];
@@ -853,7 +1105,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 403);
         }
 
+        // Vérifier qu'il y a encore assez de places disponibles
+        $trajet = $reservation->trajet;
+        if ($trajet->places_disponibles < $reservation->nombre_places) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Plus assez de places disponibles pour accepter cette réservation'
+            ], 400);
+        }
+
+        // Accepter la réservation et décrémenter les places
         $reservation->update(['statut' => 'confirmee']);
+        $trajet->decrement('places_disponibles', $reservation->nombre_places);
 
         return response()->json([
             'success' => true,

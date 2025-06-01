@@ -42,6 +42,7 @@ try {
             prenom VARCHAR(255) NOT NULL,
             nom VARCHAR(255) NOT NULL,
             email VARCHAR(255) UNIQUE NOT NULL,
+            telephone VARCHAR(20) NULL,
             email_verified_at TIMESTAMP NULL,
             password VARCHAR(255) NOT NULL,
             role ENUM('voyageur', 'conducteur', 'admin') DEFAULT 'voyageur',
@@ -81,12 +82,13 @@ try {
     
     // Admin principal
     $pdo->prepare("
-        INSERT INTO users (prenom, nom, email, password, role, genre, date_naissance, badge_verifie, email_verified_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        INSERT INTO users (prenom, nom, email, telephone, password, role, genre, date_naissance, badge_verifie, email_verified_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ")->execute([
         'Admin',
         'CovoitFacile',
         'admin@covoitfacile.ma',
+        '+212 6 12 34 56 78',
         $hashedPassword,
         'admin',
         'homme',
@@ -96,29 +98,30 @@ try {
     
     // Comptes de test
     $testAccounts = [
-        ['Test', 'Admin', 'test@admin.com', 'admin', 'homme'],
-        ['Test', 'Conducteur', 'test@conducteur.com', 'conducteur', 'homme'],
-        ['Test', 'Voyageur', 'test@voyageur.com', 'voyageur', 'femme'],
-        ['Ahmed', 'Benali', 'ahmed@test.com', 'conducteur', 'homme'],
-        ['Fatima', 'Zahra', 'fatima@test.com', 'voyageur', 'femme'],
-        ['Omar', 'Tazi', 'omar@test.com', 'conducteur', 'homme'],
-        ['Aicha', 'Alami', 'aicha@test.com', 'voyageur', 'femme'],
-        ['Youssef', 'Idrissi', 'youssef@test.com', 'conducteur', 'homme'],
+        ['Test', 'Admin', 'test@admin.com', '+212 6 11 22 33 44', 'admin', 'homme'],
+        ['Test', 'Conducteur', 'test@conducteur.com', '+212 6 55 66 77 88', 'conducteur', 'homme'],
+        ['Test', 'Voyageur', 'test@voyageur.com', '+212 6 99 00 11 22', 'voyageur', 'femme'],
+        ['Ahmed', 'Benali', 'ahmed@test.com', '+212 6 33 44 55 66', 'conducteur', 'homme'],
+        ['Fatima', 'Zahra', 'fatima@test.com', '+212 6 77 88 99 00', 'voyageur', 'femme'],
+        ['Omar', 'Tazi', 'omar@test.com', '+212 6 11 33 55 77', 'conducteur', 'homme'],
+        ['Aicha', 'Alami', 'aicha@test.com', '+212 6 22 44 66 88', 'voyageur', 'femme'],
+        ['Youssef', 'Idrissi', 'youssef@test.com', '+212 6 99 11 33 55', 'conducteur', 'homme'],
     ];
     
     $stmt = $pdo->prepare("
-        INSERT INTO users (prenom, nom, email, password, role, genre, date_naissance, badge_verifie, email_verified_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        INSERT INTO users (prenom, nom, email, telephone, password, role, genre, date_naissance, badge_verifie, email_verified_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
-    
+
     foreach ($testAccounts as $account) {
         $stmt->execute([
-            $account[0],
-            $account[1],
-            $account[2],
+            $account[0], // prenom
+            $account[1], // nom
+            $account[2], // email
+            $account[3], // telephone
             $hashedPassword,
-            $account[3],
-            $account[4],
+            $account[4], // role
+            $account[5], // genre
             '1990-01-01',
             1
         ]);

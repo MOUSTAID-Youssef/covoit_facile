@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaEdit, FaCamera, FaIdCard, FaCheck, FaClock, FaSpinner, FaTrash, FaCar, FaCalendarAlt } from 'react-icons/fa';
+import { FaEdit, FaCamera, FaIdCard, FaCheck, FaClock, FaSpinner, FaTrash, FaCar, FaCalendarAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import userService from '../services/userService';
 import DriverTripsManagement from '../components/DriverTripsManagement';
@@ -22,6 +22,17 @@ const Profile = () => {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  // Définir l'onglet par défaut selon le rôle de l'utilisateur
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'voyageur') {
+        setActiveTab('reservations');
+      } else if (user.role === 'conducteur') {
+        setActiveTab('trips');
+      }
+    }
+  }, [user]);
 
   const loadProfile = async () => {
     try {
@@ -444,6 +455,28 @@ const Profile = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Numéro de téléphone
+                  </label>
+                  <input
+                    type="tel"
+                    name="telephone"
+                    value={user.telephone || ''}
+                    onChange={handleInputChange}
+                    placeholder="+212612345678 ou 0612345678"
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                      errors.telephone ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.telephone && (
+                    <p className="mt-1 text-sm text-red-600">{errors.telephone}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    Format marocain : +212XXXXXXXXX ou 0XXXXXXXXX
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Genre
                   </label>
                   <select
@@ -502,6 +535,18 @@ const Profile = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-500">Email</label>
                   <p className="mt-1 text-lg text-gray-900">{user.email || 'Non renseigné'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Téléphone</label>
+                  <p className="mt-1 text-lg text-gray-900">
+                    {user.telephone ? (
+                      <a href={`tel:${user.telephone}`} className="text-indigo-600 hover:text-indigo-800">
+                        📞 {user.telephone}
+                      </a>
+                    ) : (
+                      'Non renseigné'
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="space-y-4">
@@ -698,52 +743,44 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Onglets pour la gestion des trajets/réservations */}
+        {/* Section trajets/réservations */}
         <div className="border-t border-gray-200 mt-8">
-          <div className="flex space-x-8 px-6 py-4">
+          {/* Pour les conducteurs : onglets avec gestion des trajets */}
+          {user.role === 'conducteur' && (
+            <>
+              <div className="flex space-x-8 px-6 py-4">
+                <button
+                  onClick={() => setActiveTab('trips')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'trips'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <FaCar className="inline mr-2" />
+                  Mes Trajets
+                </button>
+              </div>
 
+              <div className="px-6 py-6">
+                {activeTab === 'trips' && <DriverTripsManagement />}
+              </div>
+            </>
+          )}
 
-            {user.role === 'conducteur' && (
-              <button
-                onClick={() => setActiveTab('trips')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'trips'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <FaCar className="inline mr-2" />
-                Mes Trajets
-              </button>
-            )}
-
-            {user.role === 'voyageur' && (
-              <button
-                onClick={() => setActiveTab('reservations')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'reservations'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <FaCalendarAlt className="inline mr-2" />
-                Mes Réservations
-              </button>
-            )}
-          </div>
-
-          {/* Contenu des onglets */}
-          <div className="px-6 py-6">
-
-
-            {activeTab === 'trips' && user.role === 'conducteur' && (
-              <DriverTripsManagement />
-            )}
-
-            {activeTab === 'reservations' && user.role === 'voyageur' && (
+          {/* Pour les voyageurs : affichage direct des réservations */}
+          {user.role === 'voyageur' && (
+            <div className="px-6 py-6">
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
+                  <FaCalendarAlt className="text-indigo-500" />
+                  <span>Mes Réservations</span>
+                </h3>
+                <p className="text-gray-600 mt-1">Gérez vos réservations de trajets</p>
+              </div>
               <PassengerReservations />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

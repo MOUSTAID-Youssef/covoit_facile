@@ -120,11 +120,45 @@ class AuthService {
   async refreshUser() {
     try {
       const response = await apiClient.get('/profile');
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      return response.data.user;
+      if (response.data.success && response.data.data) {
+        localStorage.setItem('user', JSON.stringify(response.data.data));
+        return response.data.data;
+      } else if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        return response.data.user;
+      }
+      return null;
     } catch (error) {
       console.error('Erreur lors du rafraîchissement des données utilisateur:', error);
+      // Si erreur 401, le token est invalide
+      if (error.response?.status === 401) {
+        console.warn('🔒 Token invalide lors du refresh - déconnexion nécessaire');
+        this.clearAuthData();
+        return null;
+      }
       return null;
+    }
+  }
+
+  // Nettoyer les données d'authentification
+  clearAuthData() {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    console.log('🧹 Données d\'authentification supprimées');
+  }
+
+  // Vérifier la validité du token
+  async validateToken() {
+    try {
+      const response = await apiClient.get('/user');
+      return response.data ? true : false;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        console.warn('🔒 Token invalide - nettoyage des données');
+        this.clearAuthData();
+        return false;
+      }
+      return false;
     }
   }
 }

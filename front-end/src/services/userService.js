@@ -109,6 +109,37 @@ class UserService {
     }
   }
 
+  // Upload de document d'identité (CIN)
+  async uploadIdentity(file) {
+    try {
+      const formData = new FormData();
+      formData.append('cin', file);
+
+      const response = await apiClient.post('/profile/identity', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Mettre à jour les données utilisateur en local
+      if (response.data.data) {
+        localStorage.setItem('user', JSON.stringify(response.data.data));
+      }
+
+      return {
+        success: true,
+        data: response.data.data,
+        message: 'Document d\'identité uploadé avec succès'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de l\'upload',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+
   // Upload de pièce d'identité
   async uploadIdentityDocument(file) {
     try {
@@ -219,6 +250,116 @@ class UserService {
       return {
         success: false,
         message: error.response?.data?.message || 'Erreur lors du changement de mot de passe',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+  // Obtenir le véhicule du conducteur
+  async getMyVehicle() {
+    try {
+      const response = await apiClient.get('/profile/vehicle');
+      return {
+        success: true,
+        data: response.data.data || response.data.vehicle,
+        message: response.data.message
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors du chargement du véhicule',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+
+  // Ajouter un véhicule
+  async addVehicle(vehicleData) {
+    try {
+      console.log('🚗 Ajout du véhicule:', vehicleData);
+      const response = await apiClient.post('/profile/vehicle', vehicleData);
+
+      // Mettre à jour les données utilisateur en local si nécessaire
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+
+      return {
+        success: true,
+        data: response.data.data || response.data.vehicle,
+        message: response.data.message || 'Véhicule ajouté avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'ajout du véhicule:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de l\'ajout du véhicule',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+
+  // Mettre à jour un véhicule
+  async updateVehicle(vehicleData) {
+    try {
+      console.log('🔧 Mise à jour du véhicule:', vehicleData);
+      const response = await apiClient.put('/profile/vehicle', vehicleData);
+
+      return {
+        success: true,
+        data: response.data.data || response.data.vehicle,
+        message: response.data.message || 'Véhicule mis à jour avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour du véhicule:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de la mise à jour du véhicule',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+
+  // Supprimer un véhicule
+  async deleteVehicle() {
+    try {
+      console.log('🗑️ Suppression du véhicule');
+      const response = await apiClient.delete('/profile/vehicle');
+
+      return {
+        success: true,
+        message: response.data.message || 'Véhicule supprimé avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la suppression du véhicule:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de la suppression du véhicule',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+
+  // Mettre à jour le numéro de téléphone
+  async updatePhone(telephone) {
+    try {
+      console.log('📞 Mise à jour du téléphone:', telephone);
+      const response = await apiClient.put('/profile/phone', { telephone });
+
+      // Mettre à jour les données utilisateur en local
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+
+      return {
+        success: true,
+        data: response.data.user,
+        message: response.data.message || 'Numéro de téléphone mis à jour avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour du téléphone:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de la mise à jour du téléphone',
         errors: error.response?.data?.errors || {}
       };
     }

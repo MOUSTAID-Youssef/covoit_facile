@@ -8,6 +8,7 @@ function Register() {
     prenom: '',
     nom: '',
     email: '',
+    telephone: '',
     password: '',
     password_confirmation: '',
     genre: '',
@@ -54,6 +55,10 @@ function Register() {
       newErrors.email = 'L\'email est requis';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Format d\'email invalide';
+    }
+
+    if (formData.telephone && !/^(\+212|0)[5-7][0-9]{8}$/.test(formData.telephone)) {
+      newErrors.telephone = 'Format de téléphone marocain invalide (ex: +212612345678 ou 0612345678)';
     }
 
     if (!formData.password) {
@@ -183,28 +188,51 @@ function Register() {
               </div>
             </div>
 
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Adresse email *
+              </label>
+              <div className="mt-1">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  placeholder="votre@email.com"
+                  className={`appearance-none block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
+                    errors.email ? 'border-red-300' : 'border-gray-200'
+                  }`}
+                  value={formData.email}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                )}
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <div className="flex-1">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Adresse email *
+                <label htmlFor="telephone" className="block text-sm font-medium text-gray-700">
+                  Numéro de téléphone
                 </label>
                 <div className="mt-1">
                   <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    placeholder="votre@email.com"
+                    id="telephone"
+                    name="telephone"
+                    type="tel"
+                    placeholder="+212612345678 ou 0612345678"
                     className={`appearance-none block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-base transition-all duration-300 hover:border-indigo-300 bg-white/80 ${
-                      errors.email ? 'border-red-300' : 'border-gray-200'
+                      errors.telephone ? 'border-red-300' : 'border-gray-200'
                     }`}
-                    value={formData.email}
+                    value={formData.telephone}
                     onChange={handleChange}
                     disabled={loading}
                   />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  {errors.telephone && (
+                    <p className="mt-1 text-sm text-red-600">{errors.telephone}</p>
                   )}
                 </div>
               </div>

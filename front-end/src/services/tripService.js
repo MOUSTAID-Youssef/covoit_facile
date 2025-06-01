@@ -142,6 +142,103 @@ class TripService {
     }
   }
 
+  // Obtenir les réservations de l'utilisateur connecté (voyageur)
+  async getMyReservations() {
+    try {
+      console.log('📋 Chargement de mes réservations...');
+
+      // Essayer plusieurs endpoints possibles
+      let response;
+      let endpoint = '/my-reservations';
+
+      try {
+        response = await apiClient.get(endpoint);
+      } catch (firstError) {
+        console.log('❌ Endpoint /my-reservations échoué, essai avec /reservations/my');
+        try {
+          endpoint = '/reservations/my';
+          response = await apiClient.get(endpoint);
+        } catch (secondError) {
+          console.log('❌ Endpoint /reservations/my échoué, essai avec /user/reservations');
+          endpoint = '/user/reservations';
+          response = await apiClient.get(endpoint);
+        }
+      }
+
+      console.log(`✅ Mes réservations chargées depuis ${endpoint}:`, response.data);
+
+      // Gérer différents formats de réponse
+      let reservationsData = [];
+      if (response.data.reservations) {
+        reservationsData = response.data.reservations;
+      } else if (response.data.data) {
+        reservationsData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        reservationsData = response.data;
+      }
+
+      return {
+        success: true,
+        reservations: reservationsData,
+        data: reservationsData,
+        endpoint: endpoint
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement de mes réservations:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors du chargement de vos réservations',
+        reservations: [],
+        data: [],
+        errors: error.response?.data?.errors || {},
+        statusCode: error.response?.status
+      };
+    }
+  }
+
+  // Faire une réservation
+  async makeReservation(tripId, reservationData) {
+    try {
+      console.log('🎫 Création d\'une réservation:', { tripId, reservationData });
+      const response = await apiClient.post(`/trips/${tripId}/reserve`, reservationData);
+      console.log('✅ Réservation créée:', response.data);
+
+      return {
+        success: true,
+        data: response.data.data || response.data,
+        message: response.data.message || 'Réservation créée avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la réservation:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de la réservation',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+
+  // Annuler une réservation
+  async cancelReservation(reservationId) {
+    try {
+      console.log('❌ Annulation de la réservation:', reservationId);
+      const response = await apiClient.delete(`/reservations/${reservationId}`);
+      console.log('✅ Réservation annulée:', response.data);
+
+      return {
+        success: true,
+        message: response.data.message || 'Réservation annulée avec succès'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'annulation:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erreur lors de l\'annulation',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  }
+
   // Obtenir les trajets populaires
   async getPopularTrips() {
     try {

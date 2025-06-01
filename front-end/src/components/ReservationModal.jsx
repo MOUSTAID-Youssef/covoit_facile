@@ -32,7 +32,9 @@ const ReservationModal = ({ trip, isOpen, onClose, onSuccess }) => {
       }
 
       if (result.success) {
-        onSuccess(result.message || 'Réservation créée avec succès !');
+        // Afficher un message de succès détaillé
+        const successMsg = `Réservation créée avec succès ! Votre demande de ${formData.nombre_places} place(s) pour le trajet ${trip.ville_depart} → ${trip.ville_arrivee} a été envoyée au conducteur. Vous recevrez une notification dès qu'elle sera acceptée.`;
+        onSuccess(successMsg);
         onClose();
         // Réinitialiser le formulaire
         setFormData({

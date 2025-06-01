@@ -16,6 +16,8 @@ class Vehicule extends Model
         'annee',
         'couleur',
         'nombre_places',
+        'description',
+        'statut',
         'climatisation',
         'statut_verification',
         'commentaire_verification',
@@ -33,6 +35,14 @@ class Vehicule extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relation: Propriétaire du véhicule (alias)
+     */
+    public function proprietaire()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**

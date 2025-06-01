@@ -23,6 +23,11 @@ class RegisteredUserController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'nom' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+            'telephone' => ['nullable', 'string', function ($attribute, $value, $fail) {
+                if ($value && !preg_match('/^(\+212|0)[5-7][0-9]{8}$/', $value)) {
+                    $fail('Le format du numéro de téléphone est invalide. Utilisez le format marocain : +212XXXXXXXXX ou 0XXXXXXXXX');
+                }
+            }],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['sometimes', 'string', 'in:voyageur,conducteur'],
             'genre' => ['sometimes', 'string', 'in:homme,femme'],
@@ -33,6 +38,7 @@ class RegisteredUserController extends Controller
             'prenom' => $request->prenom,
             'nom' => $request->nom,
             'email' => $request->email,
+            'telephone' => $request->telephone,
             'password' => Hash::make($request->password),
             'role' => $request->role ?? 'voyageur',
             'genre' => $request->genre,

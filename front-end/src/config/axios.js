@@ -37,12 +37,11 @@ apiClient.interceptors.response.use(
     console.error('❌ Erreur API:', error.response?.status, error.config?.url);
     console.error('📄 Détails:', error.response?.data);
 
-    // Gestion des erreurs d'authentification
+    // Gestion des erreurs d'authentification - NE PAS rediriger automatiquement
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      console.warn('🔒 Erreur 401 détectée - Token invalide ou expiré');
+      // Laisser le contexte d'authentification gérer la déconnexion
+      // Ne pas supprimer les données ici pour éviter les déconnexions intempestives
     }
 
     // Gestion des erreurs de validation

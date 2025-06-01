@@ -31,7 +31,7 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => null, // Pas d'expiration - connexion permanente
 
     /*
     |--------------------------------------------------------------------------
